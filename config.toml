@@ -1,0 +1,16 @@
+theme = "ayu_mirage"
+
+[editor.statusline]
+center = ["custom"]
+
+# create a new minor mode bound to `+`
+[keys.normal."+"]
+m = ":run-shell-command echo 2"
+c = ":run-shell-command cargo build"
+t = ":run-shell-command cargo test"
+n = ":run-shell-command echo 3"
+
+[editor.cursor-shape]
+insert = "bar"
+normal = "block"
+select = "underline"

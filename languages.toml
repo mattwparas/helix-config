@@ -1,0 +1,4 @@
+[[language]]
+name = "scheme"
+formatter = { command = "raco", args = ["fmt", "-i"] }
+auto-format = true
