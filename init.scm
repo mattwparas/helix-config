@@ -9,6 +9,13 @@
 (require-builtin steel/process as process/)
 (require "steel/lists/lists.scm")
 
+;; Nice! This doesn't segfault anymore
+;; (require-builtin custom-commands)
+
+;; (External-talk-to-context *helix.cx*)
+
+;; (displayln (FooBarBaz::new))
+
 ;; (require-builtin external-command-module as ext.)
 ;; (ext.go-change-theme *helix.cx* (list "default") helix.PromptEvent::Validate)
 
@@ -16,6 +23,15 @@
 
 ;; (require-builtin dylib/toml as toml::)
 ;; (displayln (toml::add-100 #\c))
+
+(define (level1)
+  (level2))
+
+(define (level2)
+  (error! "I want the stack trace to show up"))
+
+(define (big-error cx)
+  (level1))
 
 (define (get-weather)
   (~> (requests.get "http://wttr.in/?format=3")
@@ -118,4 +134,4 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;; Options ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Allow hidden files to show up
-(helix.set-option *helix.cx* '("file-picker.hidden" "false"))
+(helix.set-option *helix.cx* '("file-picker.hidden" "false") helix.PromptEvent::Validate)

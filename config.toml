@@ -14,3 +14,7 @@ n = ":run-shell-command echo 3"
 insert = "bar"
 normal = "block"
 select = "underline"
+
+
+[keys.normal.y]
+y = ["extend_to_line_bounds", "yank_main_selection_to_clipboard", "normal_mode", "collapse_selection"]
