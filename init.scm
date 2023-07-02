@@ -135,3 +135,4 @@
 
 ;; Allow hidden files to show up
 (helix.set-option *helix.cx* '("file-picker.hidden" "false") helix.PromptEvent::Validate)
+(helix.set-option *helix.cx* '("cursorline" "true") helix.PromptEvent::Validate)

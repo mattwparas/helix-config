@@ -6,6 +6,9 @@
          (for-syntax "prelude.scm"))
 
 (require-helix)
+
+(require "steel/sorting/merge-sort.scm")
+
 ; (require "steel/result" as result/)
 ; (require "steel/option")
 
@@ -39,7 +42,7 @@
          run-in-repl
          create-file-tree
          open-file-from-picker
-         fold-directory
+         ; fold-directory
          ;; wrapped-go-change-theme
          ;test-component
          )
@@ -100,6 +103,24 @@
   (push-component!
    cx
    (new-component! "steel-dynamic-component" (list) (lambda (area frame context) void) (hash))))
+
+(provide run-prompt)
+; (define (run-prompt cx)
+;   (push-component! cx (Prompt::new "Please enter your name:" (lambda (cx result) (error! result)))))
+
+;; TODO: Recursive prompts... still broken for the above reason. Probably need some sort of
+;; consuming callback queue
+(define (run-prompt cx)
+  (helix-prompt!
+   cx
+   "Please enter your name:"
+   (lambda (cx result)
+     (helix-prompt! cx
+                    (string-append "You just entered: " result ". Is that right?: (y/n)")
+                    (lambda (cx result) (create-file-tree cx))))))
+
+(define (helix-prompt! cx prompt-str thunk)
+  (push-component! cx (Prompt::new prompt-str thunk)))
 
 ;; I think options might still come through as void?
 (define (unwrap-or obj alt)
@@ -229,6 +250,8 @@
      ; (helix.static.insert_newline cx)
      )))
 
+;; Initialize all roots to be flat so that we don't blow things up, recursion only goes in to things
+;; that are expanded
 (define (create-file-tree cx)
   (unless (hash-contains? *temporary-buffer-map* "file-tree")
     (make-new-labelled-buffer! cx #:label "file-tree" #:side 'left))
@@ -241,7 +264,7 @@
 
                               ;; Update the current file tree value
                               (set! *file-tree*
-                                    (tree "/home/matt/Documents/helix-fork/helix/helix-core"
+                                    (tree (helix-find-workspace)
                                           (lambda (str)
                                             (helix.static.insert_string cx str)
                                             (helix.static.open_below cx)
@@ -427,6 +450,7 @@
              ("p" => highlight-to-matching-paren)
              ("d" => delete-sexpr)
              ("r" => run-expr)
+             ("t" => run-prompt)
              ;; ("t" => test-component)
              )
 
@@ -462,14 +486,9 @@
 (define (print-engine-stats)
   (error "TODO"))
 
-;; TODO: Capture the output of standard out and pipe it to the
-;; window here
-;; (help open-helix-scm)
-
-;; (error "uh oh!")
-
 (define *file-tree* '())
 (define *directories* (hash))
+(define *ignore-set* (hashset "target" ".git"))
 
 (define (flatten x)
   (cond
@@ -477,27 +496,52 @@
     [(not (list? x)) (list x)]
     [else (append (flatten (car x)) (flatten (cdr x)))]))
 
+(define (format-dir path)
+  (if (hash-contains? *directories* path)
+      (if (hash-try-get *directories* path) ">  " "v  ")
+      ">  " ;; First time we're visiting, mark as closed
+      ))
+
+(define *extension-map* (hash "rs" " " "scm" "󰘧 "))
+
+(define (path->symbol path)
+  (let ([extension (path->extension path)])
+    (if extension
+        (begin
+          (define lookup (hash-try-get *extension-map* (path->extension path)))
+          (if lookup lookup " "))
+
+        " ")))
+
 ;; Simple tree implementation
 ;; Walks the file structure and prints without much fancy formatting
 ;; Returns a list of the visited files for convenience
 (define (tree p writer-thunk)
   (define (tree-rec path padding)
     (define name (file-name path))
-    (writer-thunk (string-append padding (if (is-dir? path) "📁" "📄") name))
-    (cond
-      [(is-file? path) path]
-      [(is-dir? path)
 
-       ;; If we're not supposed to see this path (i.e. its been folded),
-       ;; then we're going to ignore it
-       (if (hash-try-get *directories* path)
-           (list path)
+    (if (hashset-contains? *ignore-set* name)
+        '()
+        (begin
+          (writer-thunk
+           (string-append padding (if (is-dir? path) (format-dir path) (path->symbol path)) name))
+          (cond
+            [(is-file? path) path]
+            [(is-dir? path)
+             ;; If we're not supposed to see this path (i.e. its been folded),
+             ;; then we're going to ignore it
+             ;; Also - if it doesn't exist in the set, default it to folded
+             (if (not (hash-contains? *directories* path))
+                 (begin
+                   (set! *directories* (hash-insert *directories* path #t))
+                   (list path))
+                 (if (hash-try-get *directories* path)
+                     (list path)
 
-           (cons path
-                 (map (fn (x) (tree-rec x (string-append padding "    ")))
-                      ; (merge-sort (read-dir path)))]
-                      (read-dir path))))]
-      [else void]))
+                     (cons path
+                           (map (fn (x) (tree-rec x (string-append padding "    ")))
+                                (merge-sort (read-dir path))))))]
+            [else void]))))
   (flatten (tree-rec p "")))
 
 ;;@doc
@@ -517,7 +561,7 @@
 
   ;; Update the current file tree value
   (set! *file-tree*
-        (tree "/home/matt/Documents/helix-fork/helix/helix-core"
+        (tree (helix-find-workspace)
               (lambda (str)
                 (helix.static.insert_string cx str)
                 (helix.static.open_below cx)
@@ -530,7 +574,11 @@
 
 (define (currently-in-labelled-buffer? cx label)
   (define requested-label (hash-try-get *temporary-buffer-map* label))
-  (equal? (doc-id->usize requested-label) (doc-id->usize (get-current-doc-id cx))))
+  (if requested-label
+      (equal? (doc-id->usize requested-label) (doc-id->usize (get-current-doc-id cx)))
+      #false))
+
+(provide fold-directory)
 
 ;; Fold the directory that we're currently hovering over
 ;; TODO: Assert that we're in a valid file picker buffer
@@ -545,3 +593,40 @@
             (set! *directories* (hash-insert *directories* directory-to-fold #t)))
 
         (update-file-tree cx)))))
+
+;; Create a file under wherever we are
+(provide create-file)
+(define (create-file cx)
+  (when (currently-in-labelled-buffer? cx "file-tree")
+    (define currently-selected (list-ref *file-tree* (helix.static.get-current-line-number cx)))
+    (define prompt
+      (if (is-dir? currently-selected)
+          (string-append "New file: " currently-selected "/")
+          (string-append "New file: "
+                         (trim-end-matches currently-selected (file-name currently-selected)))))
+
+    (helix-prompt!
+     cx
+     prompt
+     (lambda (cx result)
+       (define file-name (string-append (trim-start-matches prompt "New file: ") result))
+       (temporarily-switch-focus cx
+                                 (lambda (cx)
+                                   (helix.vsplit-new cx '() helix.PromptEvent::Validate)
+                                   (helix.open cx (list file-name) helix.PromptEvent::Validate)
+                                   (helix.write cx (list file-name) helix.PromptEvent::Validate)
+                                   (helix.quit cx '() helix.PromptEvent::Validate)))
+
+       ;; TODO:
+       ;; This is happening before the write is finished, so its not working. We will have to manually insert
+       ;; the new file into the right spot in the tree, which would require rewriting this to have a proper sorted
+       ;; tree representation in memory, which we don't yet have. For now, we can just do this I guess
+       ; (update-file-tree cx)))))
+       (enqueue-thread-local-callback cx refresh-file-tree)))))
+
+(provide refresh-file-tree)
+(define (refresh-file-tree cx)
+  (temporarily-switch-focus cx
+                            (lambda (cx)
+                              (open-labelled-buffer cx "file-tree")
+                              (update-file-tree cx))))
