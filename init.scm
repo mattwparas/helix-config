@@ -9,6 +9,8 @@
 (require-builtin steel/process as process/)
 (require "steel/lists/lists.scm")
 
+; (helix.config-reload *helix.cx* '() helix.PromptEvent::Validate)
+
 ;; Nice! This doesn't segfault anymore
 ;; (require-builtin custom-commands)
 
@@ -133,6 +135,70 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;; Options ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; Allow hidden files to show up
-(helix.set-option *helix.cx* '("file-picker.hidden" "false") helix.PromptEvent::Validate)
-(helix.set-option *helix.cx* '("cursorline" "true") helix.PromptEvent::Validate)
+(define *config-map* '((file-picker.hidden false) (cursorline true)))
+
+(helix.set-options *helix.cx*
+                   (~>> *config-map* (flatten) (map symbol->string))
+                   helix.PromptEvent::Validate)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;; Keybindings ;;;;;;;;;;;;;;;;;;;;;;;
+
+;; To remove a binding, set it to 'no_op
+;; For example, this will make it impossible to enter insert mode:
+;; (hash "normal" (hash "i" 'no_op))
+
+(define scm-keybindings (hash "normal" (hash "P" (hash "n" ':run-prompt) "tab" ':fold-directory)))
+
+(define file-tree-keybindings
+  (hash "normal"
+        (hash "i"
+              'no_op
+              "v"
+              'no_op
+              "|"
+              'no_op
+              "!"
+              'no_op
+              "A-!"
+              'no_op
+              "$"
+              'no_op
+              "C-a"
+              'no_op
+              "C-x"
+              'no_op
+              "a"
+              'no_op
+              "I"
+              'no_op
+              "o"
+              'no_op
+              "O"
+              'no_op
+              "d"
+              'no_op
+              "A-d"
+              'no_op
+              "tab"
+              ':fold-directory
+              "E"
+              ':unfold-all-one-level
+              "o"
+              ':open-file-from-picker
+              "n"
+              (hash "f" ':create-file "d" ':create-directory)
+              "F"
+              ':fold-all)))
+
+;; Grab whatever the existing keybinding map is
+(define standard-keybindings (helix-current-keymap))
+(define file-tree-base (helix-current-keymap))
+
+(helix-merge-keybindings standard-keybindings
+                         (~> scm-keybindings (value->jsexpr-string) (helix-string->keymap)))
+
+(helix-merge-keybindings file-tree-base
+                         (~> file-tree-keybindings (value->jsexpr-string) (helix-string->keymap)))
+
+;; <scratch> + <doc id> is probably the best way to handle this?
+(set! *buffer-or-extension-keybindings* (hash "scm" standard-keybindings "file-tree" file-tree-base))

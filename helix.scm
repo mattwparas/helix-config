@@ -110,6 +110,9 @@
 
 ;; TODO: Recursive prompts... still broken for the above reason. Probably need some sort of
 ;; consuming callback queue
+
+;;@doc
+;; Testing out a prompt here
 (define (run-prompt cx)
   (helix-prompt!
    cx
@@ -180,6 +183,7 @@
 
 ;; (hash? string? )
 (define *temporary-buffer-map* (hash))
+(set! *reverse-buffer-map* (hash))
 
 ;; Grab whatever we're currently focused on
 (define (get-current-focus cx)
@@ -213,6 +217,8 @@
 
   ;; Add the document id to our internal mapping.
   (set! *temporary-buffer-map* (hash-insert *temporary-buffer-map* label (get-current-doc-id cx)))
+  (set! *reverse-buffer-map*
+        (hash-insert *reverse-buffer-map* (doc-id->usize (get-current-doc-id cx)) label))
 
   ;; Go back to where we were before
   (editor-set-focus! (cx-editor! cx) last-focused)
@@ -423,6 +429,8 @@
   (helix.static.select_mode cx)
   (helix.static.match_brackets cx))
 
+;;@doc
+;; Run the s expression
 (define (run-expr cx)
   (define current-selection (helix.static.current_selection cx))
   (when (or (equal? "(" current-selection) (equal? ")" current-selection))
@@ -578,6 +586,12 @@
       (equal? (doc-id->usize requested-label) (doc-id->usize (get-current-doc-id cx)))
       #false))
 
+(define (fold! directory)
+  (set! *directories* (hash-insert *directories* directory #t)))
+
+(define (unfold! directory)
+  (set! *directories* (hash-insert *directories* directory #f)))
+
 (provide fold-directory)
 
 ;; Fold the directory that we're currently hovering over
@@ -589,8 +603,8 @@
       (begin
         ;; If its already folded, unfold it
         (if (hash-try-get *directories* directory-to-fold)
-            (set! *directories* (hash-insert *directories* directory-to-fold #f))
-            (set! *directories* (hash-insert *directories* directory-to-fold #t)))
+            (unfold! directory-to-fold)
+            (fold! directory-to-fold))
 
         (update-file-tree cx)))))
 
@@ -621,7 +635,6 @@
        ;; This is happening before the write is finished, so its not working. We will have to manually insert
        ;; the new file into the right spot in the tree, which would require rewriting this to have a proper sorted
        ;; tree representation in memory, which we don't yet have. For now, we can just do this I guess
-       ; (update-file-tree cx)))))
        (enqueue-thread-local-callback cx refresh-file-tree)))))
 
 (provide refresh-file-tree)
@@ -630,3 +643,73 @@
                             (lambda (cx)
                               (open-labelled-buffer cx "file-tree")
                               (update-file-tree cx))))
+
+(provide create-directory)
+(define (create-directory cx)
+  (when (currently-in-labelled-buffer? cx "file-tree")
+    (define currently-selected (list-ref *file-tree* (helix.static.get-current-line-number cx)))
+    (define prompt
+      (if (is-dir? currently-selected)
+          (string-append "New directory: " currently-selected "/")
+          (string-append "New directory: "
+                         (trim-end-matches currently-selected (file-name currently-selected)))))
+
+    (helix-prompt!
+     cx
+     prompt
+     (lambda (cx result)
+       (define directory-name (string-append (trim-start-matches prompt "New directory: ") result))
+       (hx.create-directory directory-name)
+       (enqueue-thread-local-callback cx refresh-file-tree)))))
+
+(provide fold-all)
+(define (fold-all cx)
+  (when (currently-in-labelled-buffer? cx "file-tree")
+
+    (set! *directories*
+          (transduce *directories* (mapping (lambda (x) (list (list-ref x 0) #t))) (into-hashmap)))
+
+    (helix.static.goto_file_start cx)
+
+    (refresh-file-tree cx)))
+
+(provide unfold-all-one-level)
+;;@doc
+;; Unfold all of the currently open directories one level.
+(define (unfold-all-one-level cx)
+  (when (currently-in-labelled-buffer? cx "file-tree")
+
+    (set! *directories*
+          (transduce *directories* (mapping (lambda (x) (list (list-ref x 0) #f))) (into-hashmap)))
+
+    (refresh-file-tree cx)))
+
+(provide create-commented-code-block)
+(define (create-commented-code-block cx)
+  (helix.static.insert_string cx "/// ```scheme\n/// \n/// ```")
+  (helix.static.move_line_up cx)
+  (helix.static.insert_mode cx))
+
+;; Something about this infinite loops...
+; (provide unfold-all)
+; (define (unfold-all cx)
+
+;   (define (loop cx)
+;     (define current-directories *directories*)
+;     (unfold-all-one-level cx)
+;     (if (equal? current-directories *directories*) 'finished (loop cx)))
+
+;   (loop cx))
+
+;; Initialize custom keybindings... For certain buffers.
+; (set! *buffer-or-extension-keybindings* (hash))
+
+; (define scm-keybindings (hash "normal" (hash "P" (hash "n" 'run-prompt))))
+
+; (define standard-keybindings (helix-default-keymap))
+
+; (helix-merge-keybindings standard-keybindings
+;                          (~> scm-keybindings (value->jsexpr-string) (helix-string->keymap)))
+
+; ;;
+; (set! *buffer-or-extension-keybindings* (hash "scm" standard-keybindings))
