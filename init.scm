@@ -2,7 +2,12 @@
 (require-builtin helix/core/static as helix.static.)
 (require-builtin helix/core/typable as helix.)
 
-(require-builtin steel/web/blocking/requests as requests.)
+;; TODO: Fix the path resolution here
+(require "keymaps.scm")
+
+(require-builtin helix/core/keymaps)
+
+; (require-builtin steel/web/blocking/requests as requests.)
 (require "steel/result")
 (require-builtin steel/time)
 
@@ -35,32 +40,32 @@
 (define (big-error cx)
   (level1))
 
-(define (get-weather)
-  (~> (requests.get "http://wttr.in/?format=3")
-      (requests.call)
-      (unwrap-ok)
-      (requests.response->text)
-      (unwrap-ok)))
+; (define (get-weather)
+;   (~> (requests.get "http://wttr.in/?format=3")
+;       (requests.call)
+;       (unwrap-ok)
+;       (requests.response->text)
+;       (unwrap-ok)))
 
-(define (format-weather weather-line)
-  (~>> weather-line (trim-end)))
+; (define (format-weather weather-line)
+; (~>> weather-line (trim-end)))
 
 ;; Main loop for getting the weather
-(define (main)
-  (while #t
-         (begin
-           (set-status-line! (format-weather (get-weather)))
-           (time/sleep-ms (* 60 1000)))))
+; (define (main)
+;   (while #t
+;          (begin
+;            (set-status-line! (format-weather (get-weather)))
+;            (time/sleep-ms (* 60 1000)))))
 
 (define rng (rand::thread-rng!))
 
 ;; Spawn a thread for the weather!
-(spawn-thread! main)
+; (spawn-thread! main)
 
 (set-theme-dracula *helix.cx*)
 
 ;; Picking one from the possible themes is _fine_
-(define possible-themes '("ayu_mirage" "tokyonight_storm"))
+(define possible-themes '("ayu_mirage" "tokyonight_storm" "catppuccin_macchiato"))
 
 (define (select-random lst)
   (let ([index (rand::rng->gen-range rng 0 (length lst))]) (list-ref lst index)))
@@ -135,11 +140,14 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;; Options ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define *config-map* '((file-picker.hidden false) (cursorline true)))
+(define (apply-options options-assoc-list)
+  (helix.set-options *helix.cx*
+                     (~>> options-assoc-list (flatten) (map symbol->string))
+                     helix.PromptEvent::Validate))
 
-(helix.set-options *helix.cx*
-                   (~>> *config-map* (flatten) (map symbol->string))
-                   helix.PromptEvent::Validate)
+(define *config-map* '((file-picker.hidden false) (cursorline true) (soft-wrap.enable true)))
+
+(apply-options *config-map*)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;; Keybindings ;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -201,4 +209,4 @@
                          (~> file-tree-keybindings (value->jsexpr-string) (helix-string->keymap)))
 
 ;; <scratch> + <doc id> is probably the best way to handle this?
-(set! *buffer-or-extension-keybindings* (hash "scm" standard-keybindings "file-tree" file-tree-base))
+(*keybinding-map-set!* (hash "scm" standard-keybindings "file-tree" file-tree-base))

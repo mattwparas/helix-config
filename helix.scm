@@ -5,6 +5,8 @@
 (require "prelude.scm"
          (for-syntax "prelude.scm"))
 
+(require "keymaps.scm")
+
 (require-helix)
 
 (require "steel/sorting/merge-sort.scm")
@@ -183,7 +185,7 @@
 
 ;; (hash? string? )
 (define *temporary-buffer-map* (hash))
-(set! *reverse-buffer-map* (hash))
+; (set! *reverse-buffer-map* (hash))
 
 ;; Grab whatever we're currently focused on
 (define (get-current-focus cx)
@@ -209,6 +211,9 @@
   ;; if it has been passed in
   (helix.vsplit-new cx '() helix.PromptEvent::Validate)
 
+  ;; Label this buffer - it will now show up instead of `[scratch]`
+  (set-scratch-buffer-name! cx (string-append "[" label "]"))
+
   ; (when (eq? side 'left)
   ;   (helix.static.swap_view_left cx))
 
@@ -217,8 +222,11 @@
 
   ;; Add the document id to our internal mapping.
   (set! *temporary-buffer-map* (hash-insert *temporary-buffer-map* label (get-current-doc-id cx)))
-  (set! *reverse-buffer-map*
-        (hash-insert *reverse-buffer-map* (doc-id->usize (get-current-doc-id cx)) label))
+
+  (*reverse-buffer-map-insert* (doc-id->usize (get-current-doc-id cx)) label)
+
+  ; (set! *reverse-buffer-map*
+  ;       (hash-insert *reverse-buffer-map* (doc-id->usize (get-current-doc-id cx)) label))
 
   ;; Go back to where we were before
   (editor-set-focus! (cx-editor! cx) last-focused)
@@ -230,7 +238,7 @@
 (define *engine* (Engine::new))
 
 (define (open-repl cx)
-  (make-new-labelled-buffer! cx #:label "steel-repl" #:language-type "scheme"))
+  (make-new-labelled-buffer! cx #:label "steel-repl"))
 
 (define (run-in-repl cx)
 
@@ -259,7 +267,14 @@
 ;; Initialize all roots to be flat so that we don't blow things up, recursion only goes in to things
 ;; that are expanded
 (define (create-file-tree cx)
-  (unless (hash-contains? *temporary-buffer-map* "file-tree")
+
+  ;; The doc id, or #false if it is not in the map
+  (define doc-id (hash-try-get *temporary-buffer-map* "file-tree"))
+
+  (unless doc-id
+    (make-new-labelled-buffer! cx #:label "file-tree" #:side 'left))
+
+  (unless (~> cx (cx-editor!) (editor-doc-exists? (hash-get *temporary-buffer-map* "file-tree")))
     (make-new-labelled-buffer! cx #:label "file-tree" #:side 'left))
 
   (temporarily-switch-focus cx
@@ -654,13 +669,13 @@
           (string-append "New directory: "
                          (trim-end-matches currently-selected (file-name currently-selected)))))
 
-    (helix-prompt!
-     cx
-     prompt
-     (lambda (cx result)
-       (define directory-name (string-append (trim-start-matches prompt "New directory: ") result))
-       (hx.create-directory directory-name)
-       (enqueue-thread-local-callback cx refresh-file-tree)))))
+    (helix-prompt! cx
+                   prompt
+                   (lambda (cx result)
+                     (define directory-name
+                       (string-append (trim-start-matches prompt "New directory: ") result))
+                     (hx.create-directory directory-name)
+                     (enqueue-thread-local-callback cx refresh-file-tree)))))
 
 (provide fold-all)
 (define (fold-all cx)
@@ -713,3 +728,222 @@
 
 ; ;;
 ; (set! *buffer-or-extension-keybindings* (hash "scm" standard-keybindings))
+
+(define (write-loop cx)
+
+  (unless (hash-try-get *temporary-buffer-map* "steel-repl")
+    (open-repl cx))
+
+  (temporarily-switch-focus cx
+                            (lambda (cx)
+                              ;; Open up the repl, write the output
+                              (open-labelled-buffer cx "steel-repl")
+                              (helix.static.insert_string cx "foobar\n")
+
+                              ; (helix.static.insert_newline cx)
+                              )))
+
+;; Refresh rate?
+(define (my-loop cx x)
+  (unless (equal? x 0)
+    (begin
+
+      (write-loop cx)
+
+      ;; Create closure to callback?
+      (enqueue-thread-local-callback-with-delay cx 100 (lambda (cx) (my-loop cx (- x 1)))))))
+
+(provide try-looping)
+(define (try-looping cx)
+  (my-loop cx 100))
+
+(require-builtin steel/time)
+
+(provide block-here-please)
+(define (block-here-please cx)
+  (time/sleep-ms 5000))
+
+;;;; Embedded Terminal ;;;;;
+
+(require-builtin steel/pty-process)
+(define *pty-process* 'uninitialized)
+
+;; Start at every 20 ms. At some point, we are going to be idled, and we don't want to constantly
+;; be running in a loop to refresh. At this point we can just delay
+(define *DEFAULT-REFRESH-DELAY* 20)
+(define *terminal-refresh-delay* *DEFAULT-REFRESH-DELAY*)
+(define fail-check 0)
+
+(define (reset-fail-check!)
+  (set! fail-check 0))
+
+(define (mark-failed!)
+  (set! fail-check (+ 1 fail-check)))
+
+;; TODO: Cap this to some large enough value
+;; This could definitely cause issues for long running stuff...
+(define (increase-terminal-refresh-delay!)
+  (set! *terminal-refresh-delay* (* *terminal-refresh-delay* *terminal-refresh-delay*)))
+
+(define (reset-terminal-refresh-delay!)
+  (set! *terminal-refresh-delay* *DEFAULT-REFRESH-DELAY*))
+; module
+;        .register_fn("create-native-pty-system!", create_native_pty_system)
+;        .register_fn("kill-pty-process!", PtyProcess::kill)
+;        .register_fn("pty-process-send-command", PtyProcess::send_command)
+;        .register_fn("pty-process-try-read-line", PtyProcess::try_read_line);
+
+(provide initialize-pty-process)
+(define (initialize-pty-process cx)
+  (set! *pty-process* (create-native-pty-system!)))
+
+(provide kill-terminal)
+(define (kill-terminal cx)
+  (kill-pty-process! *pty-process*))
+
+(define *go-signal* #t)
+
+(provide interrupt-terminal)
+(define (interrupt-terminal cx)
+  (set! *go-signal* #f)
+  (enqueue-thread-local-callback cx (lambda (cx) (set! *go-signal* #true))))
+
+(provide terminal-loop)
+(define (terminal-loop cx)
+  (when *go-signal*
+    (begin
+
+      (let ([line-future (async-try-read-line *pty-process*)])
+        (helix-await-callback cx
+                              line-future
+                              (lambda (cx line)
+                                (async-write-from-terminal-loop cx line)
+
+                                (terminal-loop cx)))))))
+
+; (write-from-terminal-loop cx)
+
+; (when (>= fail-check 1000)
+;   (increase-terminal-refresh-delay!)
+;   (reset-fail-check!))
+
+; ;; Create closure to callback?
+; (enqueue-thread-local-callback-with-delay cx
+;                                           *terminal-refresh-delay*
+;                                           (lambda (cx) (terminal-loop cx))))))
+
+;; Goes until there isn't any output to read, writing each line
+(define (read-until-no-more-lines cx)
+  (error! "TODO"))
+; (let ([output (pty-process-try-read-line *pty-process*)])
+;   (when output
+;     (helix.static.insert_string cx output)
+;     (read-until-no-more-lines cx))))
+
+(define fail-check 0)
+
+(define (write-line-to-terminal cx line)
+  (temporarily-switch-focus cx
+                            (lambda (cx)
+                              ;; Open up the repl, write the output
+                              (open-labelled-buffer cx "steel-repl")
+                              (helix.static.insert_string cx line))))
+
+(define (write-char-to-terminal cx char)
+  (cond
+    [(equal? char #\newline) (helix.static.insert_string cx "\n")]
+    [(equal? char #\return)
+     void
+     ; (temporarily-switch-focus cx
+     ;                           (lambda (cx)
+     ;                             ;; Open up the repl, write the output
+     ;                             (open-labelled-buffer cx "steel-repl")
+
+     ;                             (helix.static.insert_newline cx)
+     ;                             (helix.static.delete_selection cx)))
+     ]
+    [else (helix.static.insert_char cx char)]))
+
+;; TODO:
+;; Create a highlighter stream of spans to apply syntax highlighting
+;; to a document. It _probably_ is not performant in the slightest bit, but it could help.
+;; See syntax.rs and highlight event + Styles. Might be possible to map ansi code -> style,
+;; and then access enough of the document API to make it possible.
+
+(define *ansi-parser* (make-ansi-tokenizer))
+
+;; This is a bit silly, but we'll have to model cursor movement.
+(define *cursor-position* 1)
+
+(define (helix-clear-line cx)
+
+  (helix.static.extend_to_line_bounds cx)
+  (helix.static.delete_selection cx))
+
+(define escape-code-map
+  ;; EraseToEndOfLine - helix.static.kill_to_line_end
+  (list (lambda (cx)
+          (when (equal? 1 *cursor-position*)
+            (helix-clear-line cx)))
+        ;; EraseToStartOfLine
+        helix.static.kill_to_line_start
+        ;; EraseLine
+        (lambda (cx)
+          (helix.static.extend_to_line_bounds cx)
+          (helix.static.delete_selection cx))
+        ;; Cursor Position escape sequence
+        (lambda (cx) (helix.static.insert_string cx "CURSOR POSITION ESCAPE SEQUENCE"))))
+
+(define (async-write-from-terminal-loop cx line)
+
+  (unless (hash-try-get *temporary-buffer-map* "steel-repl")
+    (open-repl cx))
+
+  (temporarily-switch-focus
+   cx
+   (lambda (cx)
+     ;; Open up the repl, write the output
+     (open-labelled-buffer cx "steel-repl")
+
+     (transduce (tokenize-line *ansi-parser* line)
+                (into-for-each (lambda (line)
+                                 (cond
+                                   ; (write-line-to-terminal cx (to-string "ESCAPE CODE:" line))
+                                   [(int? line) ((list-ref escape-code-map line) cx)]
+                                   [(char? line) (write-char-to-terminal cx line)]
+                                   ; (write-line-to-terminal cx line)
+                                   [line (helix.static.insert_string cx line)]
+                                   [else void])))))))
+
+(define (write-from-terminal-loop cx)
+
+  (unless (hash-try-get *temporary-buffer-map* "steel-repl")
+    (open-repl cx))
+
+  (temporarily-switch-focus cx
+                            (lambda (cx)
+                              ;; Open up the repl, write the output
+                              (let ([output (async-try-read-line *pty-process*)])
+                                (if output
+                                    (begin
+                                      (open-labelled-buffer cx "steel-repl")
+                                      (helix.static.insert_string cx output)
+                                      (read-until-no-more-lines cx))
+                                    (mark-failed!))))))
+
+;; Every time we send a command, we can just unpark the delay
+(provide send-ls)
+(define (send-ls cx)
+  (reset-terminal-refresh-delay!)
+  (reset-fail-check!)
+  (pty-process-send-command *pty-process* "ls -l\r"))
+
+(require "steel/transducers/transducers.scm")
+
+(provide send-command)
+(define (send-command cx . args)
+
+  (define carriage-return-ammended-string
+    (list-transduce (tadd-between " ") rcons (append args '("\r"))))
+
+  (pty-process-send-command *pty-process* (apply string-append carriage-return-ammended-string)))
