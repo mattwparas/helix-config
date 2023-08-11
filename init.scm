@@ -3,9 +3,11 @@
 (require-builtin helix/core/typable as helix.)
 
 ;; TODO: Fix the path resolution here
-(require "keymaps.scm")
+(require "cogs/keymaps.scm")
 
-(require-builtin helix/core/keymaps)
+(require (only-in "cogs/options.scm" apply-options))
+
+; (require-builtin helix/core/keymaps)
 
 ; (require-builtin steel/web/blocking/requests as requests.)
 (require "steel/result")
@@ -140,14 +142,14 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;; Options ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (apply-options options-assoc-list)
-  (helix.set-options *helix.cx*
-                     (~>> options-assoc-list (flatten) (map symbol->string))
-                     helix.PromptEvent::Validate))
+; (define (apply-options options-assoc-list)
+;   (helix.set-options *helix.cx*
+;                      (~>> options-assoc-list (flatten) (map symbol->string))
+;                      helix.PromptEvent::Validate))
 
 (define *config-map* '((file-picker.hidden false) (cursorline true) (soft-wrap.enable true)))
 
-(apply-options *config-map*)
+(apply-options *helix.cx* *config-map*)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;; Keybindings ;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -202,11 +204,8 @@
 (define standard-keybindings (helix-current-keymap))
 (define file-tree-base (helix-current-keymap))
 
-(helix-merge-keybindings standard-keybindings
-                         (~> scm-keybindings (value->jsexpr-string) (helix-string->keymap)))
-
-(helix-merge-keybindings file-tree-base
-                         (~> file-tree-keybindings (value->jsexpr-string) (helix-string->keymap)))
+(merge-keybindings standard-keybindings scm-keybindings)
+(merge-keybindings file-tree-base file-tree-keybindings)
 
 ;; <scratch> + <doc id> is probably the best way to handle this?
-(*keybinding-map-set!* (hash "scm" standard-keybindings "file-tree" file-tree-base))
+(set-global-buffer-or-extension-keymap (hash "scm" standard-keybindings "file-tree" file-tree-base))

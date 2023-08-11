@@ -5,7 +5,7 @@
 (require "prelude.scm"
          (for-syntax "prelude.scm"))
 
-(require "keymaps.scm")
+(require "cogs/keymaps.scm")
 
 (require-helix)
 
