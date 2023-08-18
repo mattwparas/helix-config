@@ -11,6 +11,8 @@
 
 (require "steel/sorting/merge-sort.scm")
 
+(require-builtin helix/core/text as text.)
+
 ; (require "steel/result" as result/)
 ; (require "steel/option")
 
@@ -947,3 +949,26 @@
     (list-transduce (tadd-between " ") rcons (append args '("\r"))))
 
   (pty-process-send-command *pty-process* (apply string-append carriage-return-ammended-string)))
+
+(provide testing-stuff)
+(define (testing-stuff cx)
+  ;; Value should be borrowed once (successfully), then attempting to get it again
+  ;; will throw an error
+  (define editor1 (cx-editor! cx))
+
+  (lam cx)
+
+  ; (define editor2 (cx-editor! cx))
+
+  (list 10 20 30))
+
+(provide get-full-text-as-string)
+(define (get-full-text-as-string cx)
+  (let* ([editor (cx-editor! cx)]
+         [focus (editor-focus editor)]
+         [focus-doc-id (editor->doc-id editor focus)]
+         [document (editor-get-doc-if-exists editor focus-doc-id)])
+
+    (error! (text.slice->string (text.document->slice document)))))
+
+; (if document (Document-path document) #f)))
