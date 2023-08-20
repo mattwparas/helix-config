@@ -148,6 +148,7 @@
 ; (define (wrapped-go-change-theme cx entered-theme)
 ; (ext.go-change-theme cx (list entered-theme) helix.PromptEvent::Validate))
 
+;;@doc
 ;; Specialized shell - also be able to override the existing definition, if possible.
 (define (shell cx . args)
   ;; Replace the % with the current file

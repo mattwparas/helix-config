@@ -160,9 +160,8 @@
 (define scm-keybindings
   (hash "normal"
         (hash "P" (hash "n" ':run-prompt) "tab" ':fold-directory)
-        ; "insert"
-        ; (hash "ret" ':scheme-indent)
-        ))
+        "insert"
+        (hash "ret" ':scheme-indent)))
 
 (define file-tree-keybindings
   (hash "normal"
