@@ -157,7 +157,12 @@
 ;; For example, this will make it impossible to enter insert mode:
 ;; (hash "normal" (hash "i" 'no_op))
 
-(define scm-keybindings (hash "normal" (hash "P" (hash "n" ':run-prompt) "tab" ':fold-directory)))
+(define scm-keybindings
+  (hash "normal"
+        (hash "P" (hash "n" ':run-prompt) "tab" ':fold-directory)
+        ; "insert"
+        ; (hash "ret" ':scheme-indent)
+        ))
 
 (define file-tree-keybindings
   (hash "normal"
