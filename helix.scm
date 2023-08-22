@@ -25,7 +25,6 @@
          open-helix-scm
          open-init-scm
          new-function
-         dummy
          shell
          current-focus
          git-add)

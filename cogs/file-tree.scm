@@ -141,7 +141,7 @@
 ;;@doc
 ;; Open the currently selected line
 (define (open-file-from-picker cx)
-  (when (currently-in-labelled-buffer? cx "file-tree")
+  (when (currently-in-labelled-buffer? cx FILE-TREE)
     (define file-to-open (list-ref *file-tree* (helix.static.get-current-line-number cx)))
     (helix.open cx (list file-to-open) helix.PromptEvent::Validate)))
 
