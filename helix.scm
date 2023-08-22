@@ -1,27 +1,19 @@
-; (require-builtin helix/core/typable as helix.)
-; (require-builtin helix/core/static as helix.static.)
-; (require-builtin helix/core/keybindings as helix.keybindings.)
-
 (require "prelude.scm"
          (for-syntax "prelude.scm"))
 
 (require "cogs/keymaps.scm")
+(require (only-in "cogs/scheme-indent.scm" scheme-indent))
 
 (require-helix)
 
 (require "steel/sorting/merge-sort.scm")
 
-; (require "steel/result" as result/)
-; (require "steel/option")
-
-;; (require-builtin external-command-module as ext.)
-
-(provide set-theme-dracula
-         set-theme-custom
-         theme-then-vsplit
-         custom-undo
-         lam
-         delete-word-forward
+; set-theme-dracula
+; set-theme-custom
+; theme-then-vsplit
+; custom-undo
+(provide lam
+         ; delete-word-forward
          insert-string-at-selection
          highlight-to-matching-paren
          delete-sexpr
@@ -36,18 +28,26 @@
          dummy
          shell
          current-focus
-         ; foobar
-         git-add
-         new-labelled-buffer
-         open-labelled-buffer
-         git-status-in-label
-         run-in-repl
-         create-file-tree
+         git-add)
+
+;; Configuring file tree!
+
+;;;;;;;;;;;;;;; File Tree ;;;;;;;;;;;;;;;;;
+
+;; TODO: Add a way to provide-all-out from a module to make this easier
+(require "cogs/file-tree.scm")
+
+(provide fold-directory
+         unfold-all-one-level
          open-file-from-picker
-         ; fold-directory
-         ;; wrapped-go-change-theme
-         ;test-component
-         )
+         create-file-tree
+         create-file
+         create-directory
+         fold-all
+         FILE-TREE
+         FILE-TREE-KEYBINDINGS)
+
+(provide scheme-indent)
 
 (define (git-add cx)
   (shell cx "git" "add" "%"))
@@ -106,7 +106,7 @@
    cx
    (new-component! "steel-dynamic-component" (list) (lambda (area frame context) void) (hash))))
 
-(provide run-prompt)
+; (provide run-prompt)
 ; (define (run-prompt cx)
 ;   (push-component! cx (Prompt::new "Please enter your name:" (lambda (cx result) (error! result)))))
 
@@ -115,14 +115,14 @@
 
 ;;@doc
 ;; Testing out a prompt here
-(define (run-prompt cx)
-  (helix-prompt!
-   cx
-   "Please enter your name:"
-   (lambda (cx result)
-     (helix-prompt! cx
-                    (string-append "You just entered: " result ". Is that right?: (y/n)")
-                    (lambda (cx result) (create-file-tree cx))))))
+; (define (run-prompt cx)
+;   (helix-prompt!
+;    cx
+;    "Please enter your name:"
+;    (lambda (cx result)
+;      (helix-prompt! cx
+;                     (string-append "You just entered: " result ". Is that right?: (y/n)")
+;                     (lambda (cx result) (create-file-tree cx))))))
 
 (define (helix-prompt! cx prompt-str thunk)
   (push-component! cx (Prompt::new prompt-str thunk)))
@@ -185,7 +185,7 @@
   (~> cx (cx-editor!) (editor-focus)))
 
 ;; (hash? string? )
-(define *temporary-buffer-map* (hash))
+; (define *temporary-buffer-map* (hash))
 ; (set! *reverse-buffer-map* (hash))
 
 ;; Grab whatever we're currently focused on
@@ -196,147 +196,10 @@
 (define (get-current-doc-id cx)
   (let* ([editor (cx-editor! cx)] [focus (editor-focus editor)]) (editor->doc-id editor focus)))
 
-;;@doc
-;; Creates a new labelled buffer that can be access by the key `label`.
-;; Optionally sets the language type if provided
-(define (make-new-labelled-buffer! cx
-                                   #:label label
-                                   #:language-type (language-type void)
-                                   #:side (side 'right))
-
-  ;; Save our last state to return to it afterwards
-  (define last-focused (currently-focused cx))
-  (define last-mode (~> cx (cx-editor!) (editor-mode)))
-
-  ;; Open up the new labelled buffer in a vertical split, set the language accordingly
-  ;; if it has been passed in
-  (helix.vsplit-new cx '() helix.PromptEvent::Validate)
-
-  ;; Label this buffer - it will now show up instead of `[scratch]`
-  (set-scratch-buffer-name! cx (string-append "[" label "]"))
-
-  ; (when (eq? side 'left)
-  ;   (helix.static.swap_view_left cx))
-
-  (when language-type
-    (helix.set-language cx (list language-type) helix.PromptEvent::Validate))
-
-  ;; Add the document id to our internal mapping.
-  (set! *temporary-buffer-map* (hash-insert *temporary-buffer-map* label (get-current-doc-id cx)))
-
-  (*reverse-buffer-map-insert* (doc-id->usize (get-current-doc-id cx)) label)
-
-  ; (set! *reverse-buffer-map*
-  ;       (hash-insert *reverse-buffer-map* (doc-id->usize (get-current-doc-id cx)) label))
-
-  ;; Go back to where we were before
-  (editor-set-focus! (cx-editor! cx) last-focused)
-  (editor-set-mode! (cx-editor! cx) last-mode))
-
 ;; Create a named repl, that we can reference statefully
 (struct SteelRepl (doc-id))
 
 (define *engine* (Engine::new))
-
-(define (open-repl cx)
-  (make-new-labelled-buffer! cx #:label "steel-repl"))
-
-(define (run-in-repl cx)
-
-  (define highlighted-expr (helix.static.current-highlighted-text! cx))
-
-  (unless (hash-try-get *temporary-buffer-map* "steel-repl")
-    (open-repl cx))
-
-  (temporarily-switch-focus
-   cx
-   (lambda (cx)
-     ;; Open up the repl, write the output
-     (open-labelled-buffer cx "steel-repl")
-
-     (helix.static.goto_file_end cx)
-     (helix.static.insert_newline cx)
-     (helix.static.insert_string cx (string-append "> " highlighted-expr))
-
-     ;; This isn't _exactly_ what we want, but it could work just fine if we handle
-     ;; displaying errors and such
-     (helix.static.insert_string cx (to-string (run! *engine* highlighted-expr)))
-
-     ; (helix.static.insert_newline cx)
-     )))
-
-;; Initialize all roots to be flat so that we don't blow things up, recursion only goes in to things
-;; that are expanded
-(define (create-file-tree cx)
-
-  ;; The doc id, or #false if it is not in the map
-  (define doc-id (hash-try-get *temporary-buffer-map* "file-tree"))
-
-  (unless doc-id
-    (make-new-labelled-buffer! cx #:label "file-tree" #:side 'left))
-
-  (unless (~> cx (cx-editor!) (editor-doc-exists? (hash-get *temporary-buffer-map* "file-tree")))
-    (make-new-labelled-buffer! cx #:label "file-tree" #:side 'left))
-
-  (temporarily-switch-focus cx
-                            (lambda (cx)
-                              (open-labelled-buffer cx "file-tree")
-                              (helix.static.select_all cx)
-                              (helix.static.delete_selection cx)
-
-                              ;; Update the current file tree value
-                              (set! *file-tree*
-                                    (tree (helix-find-workspace)
-                                          (lambda (str)
-                                            (helix.static.insert_string cx str)
-                                            (helix.static.open_below cx)
-                                            (helix.static.goto_line_start cx)))))))
-
-;; Switch the focus for the duration of the thunk, and return to where we were previously
-(define (temporarily-switch-focus cx thunk)
-  (define last-focused (mark-last-focused! cx))
-  (define last-mode (~> cx (cx-editor!) (editor-mode)))
-  (thunk cx)
-  (editor-set-focus! (cx-editor! cx) last-focused)
-  (editor-set-mode! (cx-editor! cx) last-mode))
-
-;; Enqueue
-(define (new-labelled-buffer cx label)
-  (define last-focused (mark-last-focused! cx))
-  (define last-mode (~> cx (cx-editor!) (editor-mode)))
-  (helix.vsplit-new cx '() helix.PromptEvent::Validate)
-  (helix.set-language cx '("bash") helix.PromptEvent::Validate)
-
-  (append-to-buffer cx)
-
-  ;; Add the focus to our map
-  (set! *temporary-buffer-map* (hash-insert *temporary-buffer-map* label (get-current-doc-id cx)))
-
-  (editor-set-focus! (cx-editor! cx) last-focused)
-  (editor-set-mode! (cx-editor! cx) last-mode))
-
-(define (open-or-switch-focus cx document-id)
-  (define maybe-view-id? (editor-doc-in-view? (cx-editor! cx) document-id))
-  (if maybe-view-id?
-      (editor-set-focus! (cx-editor! cx) maybe-view-id?)
-      (editor-switch! (cx-editor! cx) document-id)))
-
-(define (git-status-in-label cx label)
-  (define last-focused (mark-last-focused! cx))
-  (define last-mode (~> cx (cx-editor!) (editor-mode)))
-
-  (open-labelled-buffer cx label)
-
-  (append-to-buffer cx)
-
-  ;; TODO: Don't just blindly set the focus, we should check if the doc is in view
-  ;; then switch to that doc otherwise. Check out `Editor::switch` to see
-  ;; if that will work for our use case here
-  (editor-set-focus! (cx-editor! cx) last-focused)
-  (editor-set-mode! (cx-editor! cx) last-mode))
-
-(define (open-labelled-buffer cx label)
-  (open-or-switch-focus cx (hash-ref *temporary-buffer-map* label)))
 
 (define (append-to-buffer cx)
   (helix.static.goto_file_end cx)
@@ -350,32 +213,32 @@
 (define (run-rust-test-under-cursor cx)
   (error! "Unimplemented!"))
 
-;;@doc
-;; Call this dummy function!
-(define (dummy cx)
-  void)
+; ;;@doc
+; ;; Call this dummy function!
+; (define (dummy cx)
+;   void)
 
-;;@doc
-;; Sets the theme to be the dracula theme
-(define (set-theme-dracula cx)
-  (helix.theme cx (list "dracula") helix.PromptEvent::Validate))
+; ;;@doc
+; ;; Sets the theme to be the dracula theme
+; (define (set-theme-dracula cx)
+;   (helix.theme cx (list "dracula") helix.PromptEvent::Validate))
 
-;;@doc
-;; Sets the theme to be the theme passed in
-(define (set-theme-custom cx entered-theme)
-  (helix.theme cx (list entered-theme) helix.PromptEvent::Validate))
+; ;;@doc
+; ;; Sets the theme to be the theme passed in
+; (define (set-theme-custom cx entered-theme)
+;   (helix.theme cx (list entered-theme) helix.PromptEvent::Validate))
 
-;;@doc
-;; Switch theme to the entered theme, then split the current file into
-;; a vsplit
-(define (theme-then-vsplit cx entered-theme)
-  (set-theme-custom cx entered-theme)
-  (helix.vsplit cx '() helix.PromptEvent::Validate))
+; ;;@doc
+; ;; Switch theme to the entered theme, then split the current file into
+; ;; a vsplit
+; (define (theme-then-vsplit cx entered-theme)
+;   (set-theme-custom cx entered-theme)
+;   (helix.vsplit cx '() helix.PromptEvent::Validate))
 
-;;@doc
-;; Perform an undo
-(define (custom-undo cx)
-  (helix.static.undo cx))
+; ;;@doc
+; ;; Perform an undo
+; (define (custom-undo cx)
+;   (helix.static.undo cx))
 
 ;;@doc
 ;; Insert a lambda
@@ -389,10 +252,10 @@
   (helix.static.insert_string cx str)
   (helix.static.insert_mode cx))
 
-;;@doc
-;; Delete the word forward
-(define (delete-word-forward cx)
-  (helix.static.delete_word_forward cx))
+; ;;@doc
+; ;; Delete the word forward
+; (define (delete-word-forward cx)
+;   (helix.static.delete_word_forward cx))
 
 ;;@doc
 ;; Registers a minor mode with the registered modifer and key map
@@ -474,7 +337,7 @@
              ("p" => highlight-to-matching-paren)
              ("d" => delete-sexpr)
              ("r" => run-expr)
-             ("t" => run-prompt)
+             ; ("t" => run-prompt)
              ;; ("t" => test-component)
              )
 
@@ -510,317 +373,55 @@
 (define (print-engine-stats)
   (error "TODO"))
 
-(define *file-tree* '())
-(define *directories* (hash))
-(define *ignore-set* (hashset "target" ".git"))
-
-(define (flatten x)
-  (cond
-    [(null? x) '()]
-    [(not (list? x)) (list x)]
-    [else (append (flatten (car x)) (flatten (cdr x)))]))
-
-(define (format-dir path)
-  (if (hash-contains? *directories* path)
-      (if (hash-try-get *directories* path) ">  " "v  ")
-      ">  " ;; First time we're visiting, mark as closed
-      ))
-
-(define *extension-map* (hash "rs" " " "scm" "󰘧 "))
-
-(define (path->symbol path)
-  (let ([extension (path->extension path)])
-    (if extension
-        (begin
-          (define lookup (hash-try-get *extension-map* (path->extension path)))
-          (if lookup lookup " "))
-
-        " ")))
-
-;; Simple tree implementation
-;; Walks the file structure and prints without much fancy formatting
-;; Returns a list of the visited files for convenience
-(define (tree p writer-thunk)
-  (define (tree-rec path padding)
-    (define name (file-name path))
-
-    (if (hashset-contains? *ignore-set* name)
-        '()
-        (begin
-          (writer-thunk
-           (string-append padding (if (is-dir? path) (format-dir path) (path->symbol path)) name))
-          (cond
-            [(is-file? path) path]
-            [(is-dir? path)
-             ;; If we're not supposed to see this path (i.e. its been folded),
-             ;; then we're going to ignore it
-             ;; Also - if it doesn't exist in the set, default it to folded
-             (if (not (hash-contains? *directories* path))
-                 (begin
-                   (set! *directories* (hash-insert *directories* path #t))
-                   (list path))
-                 (if (hash-try-get *directories* path)
-                     (list path)
-
-                     (cons path
-                           (map (fn (x) (tree-rec x (string-append padding "    ")))
-                                (merge-sort (read-dir path))))))]
-            [else void]))))
-  (flatten (tree-rec p "")))
-
-;;@doc
-;; Open the currently selected line
-(define (open-file-from-picker cx)
-  (when (currently-in-labelled-buffer? cx "file-tree")
-    (define file-to-open (list-ref *file-tree* (helix.static.get-current-line-number cx)))
-    (helix.open cx (list file-to-open) helix.PromptEvent::Validate)))
-
-(define (update-file-tree cx)
-
-  (define current-selection (helix.static.current-selection-object cx))
-  (define last-mode (~> cx (cx-editor!) (editor-mode)))
-
-  (helix.static.select_all cx)
-  (helix.static.delete_selection cx)
-
-  ;; Update the current file tree value
-  (set! *file-tree*
-        (tree (helix-find-workspace)
-              (lambda (str)
-                (helix.static.insert_string cx str)
-                (helix.static.open_below cx)
-                (helix.static.goto_line_start cx))))
-
-  ;; Set it BACK to where we were previously!
-  (helix.static.set-current-selection-object! cx current-selection)
-
-  (editor-set-mode! (cx-editor! cx) last-mode))
-
-(define (currently-in-labelled-buffer? cx label)
-  (define requested-label (hash-try-get *temporary-buffer-map* label))
-  (if requested-label
-      (equal? (doc-id->usize requested-label) (doc-id->usize (get-current-doc-id cx)))
-      #false))
-
-(define (fold! directory)
-  (set! *directories* (hash-insert *directories* directory #t)))
-
-(define (unfold! directory)
-  (set! *directories* (hash-insert *directories* directory #f)))
-
-(provide fold-directory)
-
-;; Fold the directory that we're currently hovering over
-;; TODO: Assert that we're in a valid file picker buffer
-(define (fold-directory cx)
-  (when (currently-in-labelled-buffer? cx "file-tree")
-    (define directory-to-fold (list-ref *file-tree* (helix.static.get-current-line-number cx)))
-    (when (is-dir? directory-to-fold)
-      (begin
-        ;; If its already folded, unfold it
-        (if (hash-try-get *directories* directory-to-fold)
-            (unfold! directory-to-fold)
-            (fold! directory-to-fold))
-
-        (update-file-tree cx)))))
-
-;; Create a file under wherever we are
-(provide create-file)
-(define (create-file cx)
-  (when (currently-in-labelled-buffer? cx "file-tree")
-    (define currently-selected (list-ref *file-tree* (helix.static.get-current-line-number cx)))
-    (define prompt
-      (if (is-dir? currently-selected)
-          (string-append "New file: " currently-selected "/")
-          (string-append "New file: "
-                         (trim-end-matches currently-selected (file-name currently-selected)))))
-
-    (helix-prompt!
-     cx
-     prompt
-     (lambda (cx result)
-       (define file-name (string-append (trim-start-matches prompt "New file: ") result))
-       (temporarily-switch-focus cx
-                                 (lambda (cx)
-                                   (helix.vsplit-new cx '() helix.PromptEvent::Validate)
-                                   (helix.open cx (list file-name) helix.PromptEvent::Validate)
-                                   (helix.write cx (list file-name) helix.PromptEvent::Validate)
-                                   (helix.quit cx '() helix.PromptEvent::Validate)))
-
-       ;; TODO:
-       ;; This is happening before the write is finished, so its not working. We will have to manually insert
-       ;; the new file into the right spot in the tree, which would require rewriting this to have a proper sorted
-       ;; tree representation in memory, which we don't yet have. For now, we can just do this I guess
-       (enqueue-thread-local-callback cx refresh-file-tree)))))
-
-(provide refresh-file-tree)
-(define (refresh-file-tree cx)
-  (temporarily-switch-focus cx
-                            (lambda (cx)
-                              (open-labelled-buffer cx "file-tree")
-                              (update-file-tree cx))))
-
-(provide create-directory)
-(define (create-directory cx)
-  (when (currently-in-labelled-buffer? cx "file-tree")
-    (define currently-selected (list-ref *file-tree* (helix.static.get-current-line-number cx)))
-    (define prompt
-      (if (is-dir? currently-selected)
-          (string-append "New directory: " currently-selected "/")
-          (string-append "New directory: "
-                         (trim-end-matches currently-selected (file-name currently-selected)))))
-
-    (helix-prompt! cx
-                   prompt
-                   (lambda (cx result)
-                     (define directory-name
-                       (string-append (trim-start-matches prompt "New directory: ") result))
-                     (hx.create-directory directory-name)
-                     (enqueue-thread-local-callback cx refresh-file-tree)))))
-
-(provide fold-all)
-(define (fold-all cx)
-  (when (currently-in-labelled-buffer? cx "file-tree")
-
-    (set! *directories*
-          (transduce *directories* (mapping (lambda (x) (list (list-ref x 0) #t))) (into-hashmap)))
-
-    (helix.static.goto_file_start cx)
-
-    (refresh-file-tree cx)))
-
-(provide unfold-all-one-level)
-;;@doc
-;; Unfold all of the currently open directories one level.
-(define (unfold-all-one-level cx)
-  (when (currently-in-labelled-buffer? cx "file-tree")
-
-    (set! *directories*
-          (transduce *directories* (mapping (lambda (x) (list (list-ref x 0) #f))) (into-hashmap)))
-
-    (refresh-file-tree cx)))
-
 (provide create-commented-code-block)
 (define (create-commented-code-block cx)
   (helix.static.insert_string cx "/// ```scheme\n/// \n/// ```")
   (helix.static.move_line_up cx)
   (helix.static.insert_mode cx))
 
-;; Something about this infinite loops...
-; (provide unfold-all)
-; (define (unfold-all cx)
-
-;   (define (loop cx)
-;     (define current-directories *directories*)
-;     (unfold-all-one-level cx)
-;     (if (equal? current-directories *directories*) 'finished (loop cx)))
-
-;   (loop cx))
-
-;; Initialize custom keybindings... For certain buffers.
-; (set! *buffer-or-extension-keybindings* (hash))
-
-; (define scm-keybindings (hash "normal" (hash "P" (hash "n" 'run-prompt))))
-
-; (define standard-keybindings (helix-default-keymap))
-
-; (helix-merge-keybindings standard-keybindings
-;                          (~> scm-keybindings (value->jsexpr-string) (helix-string->keymap)))
-
-; ;;
-; (set! *buffer-or-extension-keybindings* (hash "scm" standard-keybindings))
-
-(define (write-loop cx)
-
-  (unless (hash-try-get *temporary-buffer-map* "steel-repl")
-    (open-repl cx))
-
-  (temporarily-switch-focus cx
-                            (lambda (cx)
-                              ;; Open up the repl, write the output
-                              (open-labelled-buffer cx "steel-repl")
-                              (helix.static.insert_string cx "foobar\n")
-
-                              ; (helix.static.insert_newline cx)
-                              )))
-
-;; Refresh rate?
-(define (my-loop cx x)
-  (unless (equal? x 0)
-    (begin
-
-      (write-loop cx)
-
-      ;; Create closure to callback?
-      (enqueue-thread-local-callback-with-delay cx 100 (lambda (cx) (my-loop cx (- x 1)))))))
-
-(provide try-looping)
-(define (try-looping cx)
-  (my-loop cx 100))
-
-(require-builtin steel/time)
-
-(provide block-here-please)
-(define (block-here-please cx)
-  (time/sleep-ms 5000))
-
 ;;;; Embedded Terminal ;;;;;
 
-(require-builtin steel/pty-process)
-(define *pty-process* 'uninitialized)
+(skip-compile
+ ; (require-builtin steel/pty-process)
+ (define *pty-process* 'uninitialized)
+ ;; Start at every 20 ms. At some point, we are going to be idled, and we don't want to constantly
+ ;; be running in a loop to refresh. At this point we can just delay
+ (define *DEFAULT-REFRESH-DELAY* 20)
+ (define *terminal-refresh-delay* *DEFAULT-REFRESH-DELAY*)
+ (define fail-check 0)
+ (define (reset-fail-check!)
+   (set! fail-check 0))
+ (define (mark-failed!)
+   (set! fail-check (+ 1 fail-check)))
+ ;; TODO: Cap this to some large enough value
+ ;; This could definitely cause issues for long running stuff...
+ (define (increase-terminal-refresh-delay!)
+   (set! *terminal-refresh-delay* (* *terminal-refresh-delay* *terminal-refresh-delay*)))
+ (define (reset-terminal-refresh-delay!)
+   (set! *terminal-refresh-delay* *DEFAULT-REFRESH-DELAY*))
+ (provide initialize-pty-process)
+ (define (initialize-pty-process cx)
+   (set! *pty-process* (create-native-pty-system!)))
+ (provide kill-terminal)
+ (define (kill-terminal cx)
+   (kill-pty-process! *pty-process*))
+ (define *go-signal* #t)
+ (provide interrupt-terminal)
+ (define (interrupt-terminal cx)
+   (set! *go-signal* #f)
+   (enqueue-thread-local-callback cx (lambda (cx) (set! *go-signal* #true))))
+ (provide terminal-loop)
+ (define (terminal-loop cx)
+   (when *go-signal*
+     (begin
 
-;; Start at every 20 ms. At some point, we are going to be idled, and we don't want to constantly
-;; be running in a loop to refresh. At this point we can just delay
-(define *DEFAULT-REFRESH-DELAY* 20)
-(define *terminal-refresh-delay* *DEFAULT-REFRESH-DELAY*)
-(define fail-check 0)
+       (let ([line-future (async-try-read-line *pty-process*)])
+         (helix-await-callback cx
+                               line-future
+                               (lambda (cx line)
+                                 (async-write-from-terminal-loop cx line)
 
-(define (reset-fail-check!)
-  (set! fail-check 0))
-
-(define (mark-failed!)
-  (set! fail-check (+ 1 fail-check)))
-
-;; TODO: Cap this to some large enough value
-;; This could definitely cause issues for long running stuff...
-(define (increase-terminal-refresh-delay!)
-  (set! *terminal-refresh-delay* (* *terminal-refresh-delay* *terminal-refresh-delay*)))
-
-(define (reset-terminal-refresh-delay!)
-  (set! *terminal-refresh-delay* *DEFAULT-REFRESH-DELAY*))
-; module
-;        .register_fn("create-native-pty-system!", create_native_pty_system)
-;        .register_fn("kill-pty-process!", PtyProcess::kill)
-;        .register_fn("pty-process-send-command", PtyProcess::send_command)
-;        .register_fn("pty-process-try-read-line", PtyProcess::try_read_line);
-
-(provide initialize-pty-process)
-(define (initialize-pty-process cx)
-  (set! *pty-process* (create-native-pty-system!)))
-
-(provide kill-terminal)
-(define (kill-terminal cx)
-  (kill-pty-process! *pty-process*))
-
-(define *go-signal* #t)
-
-(provide interrupt-terminal)
-(define (interrupt-terminal cx)
-  (set! *go-signal* #f)
-  (enqueue-thread-local-callback cx (lambda (cx) (set! *go-signal* #true))))
-
-(provide terminal-loop)
-(define (terminal-loop cx)
-  (when *go-signal*
-    (begin
-
-      (let ([line-future (async-try-read-line *pty-process*)])
-        (helix-await-callback cx
-                              line-future
-                              (lambda (cx line)
-                                (async-write-from-terminal-loop cx line)
-
-                                (terminal-loop cx)))))))
+                                 (terminal-loop cx))))))))
 
 ; (write-from-terminal-loop cx)
 
@@ -834,36 +435,33 @@
 ;                                           (lambda (cx) (terminal-loop cx))))))
 
 ;; Goes until there isn't any output to read, writing each line
-(define (read-until-no-more-lines cx)
-  (error! "TODO"))
-; (let ([output (pty-process-try-read-line *pty-process*)])
-;   (when output
-;     (helix.static.insert_string cx output)
-;     (read-until-no-more-lines cx))))
+(skip-compile (define (read-until-no-more-lines cx)
+                (error! "TODO"))
+              ; (let ([output (pty-process-try-read-line *pty-process*)])
+              ;   (when output
+              ;     (helix.static.insert_string cx output)
+              ;     (read-until-no-more-lines cx))))
+              (define fail-check 0)
+              (define (write-line-to-terminal cx line)
+                (temporarily-switch-focus cx
+                                          (lambda (cx)
+                                            ;; Open up the repl, write the output
+                                            (open-labelled-buffer cx "steel-repl")
+                                            (helix.static.insert_string cx line))))
+              (define (write-char-to-terminal cx char)
+                (cond
+                  [(equal? char #\newline) (helix.static.insert_string cx "\n")]
+                  [(equal? char #\return)
+                   void
+                   ; (temporarily-switch-focus cx
+                   ;                           (lambda (cx)
+                   ;                             ;; Open up the repl, write the output
+                   ;                             (open-labelled-buffer cx "steel-repl")
 
-(define fail-check 0)
-
-(define (write-line-to-terminal cx line)
-  (temporarily-switch-focus cx
-                            (lambda (cx)
-                              ;; Open up the repl, write the output
-                              (open-labelled-buffer cx "steel-repl")
-                              (helix.static.insert_string cx line))))
-
-(define (write-char-to-terminal cx char)
-  (cond
-    [(equal? char #\newline) (helix.static.insert_string cx "\n")]
-    [(equal? char #\return)
-     void
-     ; (temporarily-switch-focus cx
-     ;                           (lambda (cx)
-     ;                             ;; Open up the repl, write the output
-     ;                             (open-labelled-buffer cx "steel-repl")
-
-     ;                             (helix.static.insert_newline cx)
-     ;                             (helix.static.delete_selection cx)))
-     ]
-    [else (helix.static.insert_char cx char)]))
+                   ;                             (helix.static.insert_newline cx)
+                   ;                             (helix.static.delete_selection cx)))
+                   ]
+                  [else (helix.static.insert_char cx char)])))
 
 ;; TODO:
 ;; Create a highlighter stream of spans to apply syntax highlighting
@@ -871,155 +469,76 @@
 ;; See syntax.rs and highlight event + Styles. Might be possible to map ansi code -> style,
 ;; and then access enough of the document API to make it possible.
 
-(define *ansi-parser* (make-ansi-tokenizer))
+(skip-compile
+ (define *ansi-parser* (make-ansi-tokenizer))
+ ;; This is a bit silly, but we'll have to model cursor movement.
+ (define *cursor-position* 1)
+ (define (helix-clear-line cx)
 
-;; This is a bit silly, but we'll have to model cursor movement.
-(define *cursor-position* 1)
+   (helix.static.extend_to_line_bounds cx)
+   (helix.static.delete_selection cx))
+ (define escape-code-map
+   ;; EraseToEndOfLine - helix.static.kill_to_line_end
+   (list (lambda (cx)
+           (when (equal? 1 *cursor-position*)
+             (helix-clear-line cx)))
+         ;; EraseToStartOfLine
+         helix.static.kill_to_line_start
+         ;; EraseLine
+         (lambda (cx)
+           (helix.static.extend_to_line_bounds cx)
+           (helix.static.delete_selection cx))
+         ;; Cursor Position escape sequence
+         (lambda (cx) (helix.static.insert_string cx "CURSOR POSITION ESCAPE SEQUENCE"))))
+ (define (async-write-from-terminal-loop cx line)
 
-(define (helix-clear-line cx)
+   (unless (hash-try-get *temporary-buffer-map* "steel-repl")
+     (open-repl cx))
 
-  (helix.static.extend_to_line_bounds cx)
-  (helix.static.delete_selection cx))
+   (temporarily-switch-focus
+    cx
+    (lambda (cx)
+      ;; Open up the repl, write the output
+      (open-labelled-buffer cx "steel-repl")
 
-(define escape-code-map
-  ;; EraseToEndOfLine - helix.static.kill_to_line_end
-  (list (lambda (cx)
-          (when (equal? 1 *cursor-position*)
-            (helix-clear-line cx)))
-        ;; EraseToStartOfLine
-        helix.static.kill_to_line_start
-        ;; EraseLine
-        (lambda (cx)
-          (helix.static.extend_to_line_bounds cx)
-          (helix.static.delete_selection cx))
-        ;; Cursor Position escape sequence
-        (lambda (cx) (helix.static.insert_string cx "CURSOR POSITION ESCAPE SEQUENCE"))))
+      (transduce (tokenize-line *ansi-parser* line)
+                 (into-for-each (lambda (line)
+                                  (cond
+                                    ; (write-line-to-terminal cx (to-string "ESCAPE CODE:" line))
+                                    [(int? line) ((list-ref escape-code-map line) cx)]
+                                    [(char? line) (write-char-to-terminal cx line)]
+                                    ; (write-line-to-terminal cx line)
+                                    [line (helix.static.insert_string cx line)]
+                                    [else void])))))))
+ (define (write-from-terminal-loop cx)
 
-(define (async-write-from-terminal-loop cx line)
+   (unless (hash-try-get *temporary-buffer-map* "steel-repl")
+     (open-repl cx))
 
-  (unless (hash-try-get *temporary-buffer-map* "steel-repl")
-    (open-repl cx))
+   (temporarily-switch-focus cx
+                             (lambda (cx)
+                               ;; Open up the repl, write the output
+                               (let ([output (async-try-read-line *pty-process*)])
+                                 (if output
+                                     (begin
+                                       (open-labelled-buffer cx "steel-repl")
+                                       (helix.static.insert_string cx output)
+                                       (read-until-no-more-lines cx))
+                                     (mark-failed!))))))
+ ;; Every time we send a command, we can just unpark the delay
+ (provide send-ls)
+ (define (send-ls cx)
+   (reset-terminal-refresh-delay!)
+   (reset-fail-check!)
+   (pty-process-send-command *pty-process* "ls -l\r"))
+ ; (require "steel/transducers/transducers.scm")
+ (provide send-command)
+ (define (send-command cx . args)
 
-  (temporarily-switch-focus
-   cx
-   (lambda (cx)
-     ;; Open up the repl, write the output
-     (open-labelled-buffer cx "steel-repl")
+   (define carriage-return-ammended-string
+     (list-transduce (tadd-between " ") rcons (append args '("\r"))))
 
-     (transduce (tokenize-line *ansi-parser* line)
-                (into-for-each (lambda (line)
-                                 (cond
-                                   ; (write-line-to-terminal cx (to-string "ESCAPE CODE:" line))
-                                   [(int? line) ((list-ref escape-code-map line) cx)]
-                                   [(char? line) (write-char-to-terminal cx line)]
-                                   ; (write-line-to-terminal cx line)
-                                   [line (helix.static.insert_string cx line)]
-                                   [else void])))))))
-
-(define (write-from-terminal-loop cx)
-
-  (unless (hash-try-get *temporary-buffer-map* "steel-repl")
-    (open-repl cx))
-
-  (temporarily-switch-focus cx
-                            (lambda (cx)
-                              ;; Open up the repl, write the output
-                              (let ([output (async-try-read-line *pty-process*)])
-                                (if output
-                                    (begin
-                                      (open-labelled-buffer cx "steel-repl")
-                                      (helix.static.insert_string cx output)
-                                      (read-until-no-more-lines cx))
-                                    (mark-failed!))))))
-
-;; Every time we send a command, we can just unpark the delay
-(provide send-ls)
-(define (send-ls cx)
-  (reset-terminal-refresh-delay!)
-  (reset-fail-check!)
-  (pty-process-send-command *pty-process* "ls -l\r"))
-
-(require "steel/transducers/transducers.scm")
-
-(provide send-command)
-(define (send-command cx . args)
-
-  (define carriage-return-ammended-string
-    (list-transduce (tadd-between " ") rcons (append args '("\r"))))
-
-  (pty-process-send-command *pty-process* (apply string-append carriage-return-ammended-string)))
-
-(provide testing-stuff)
-(define (testing-stuff cx)
-  ;; Value should be borrowed once (successfully), then attempting to get it again
-  ;; will throw an error
-  (define editor1 (cx-editor! cx))
-
-  (lam cx)
-
-  ; (define editor2 (cx-editor! cx))
-
-  (list 10 20 30))
-
-;(provide get-full-text-as-string)
-;(define (get-full-text-as-string cx)
-;  (let* ([editor (cx-editor! cx)]
-;         [focus (editor-focus editor)]
-;         [focus-doc-id (editor->doc-id editor focus)]
-;         [document (editor-get-doc-if-exists editor focus-doc-id)])
-;
-;    (error! (text.slice->string (text.document->slice document)))))
-
-; (if document (Document-path document) #f)))
-
-;; TODO: Make extracting scoped borrows... more obvious?
-; (define-syntax with-editor
-;   (syntax-rules (as from)
-;     [(with-editor as <name> from <cx> expr) (let ([editor]))]))
-
-(define LISP-WORDS
-  (hashset "define-syntax"
-           "let*"
-           "lambda"
-           "λ"
-           "case"
-           "=>"
-           "quote-splicing"
-           "unquote-splicing"
-           "set!"
-           "let"
-           "letrec"
-           "letrec-syntax"
-           "let-values"
-           "let*-values"
-           "do"
-           "else"
-           "cond"
-           "unquote"
-           "begin"
-           "let-syntax"
-           "and"
-           "quasiquote"
-           "letrec"
-           "delay"
-           "or"
-           "identifier-syntax"
-           "assert"
-           "library"
-           "export"
-           "import"
-           "rename"
-           "only"
-           "except"
-           "prefix"
-           "provide"
-           "require"
-           "define"
-           "cond"
-           "if"
-           "syntax-rules"
-           "when"
-           "unless"))
+   (pty-process-send-command *pty-process* (apply string-append carriage-return-ammended-string))))
 
 (define-syntax skip-compile
   (syntax-rules ()
@@ -1028,187 +547,3 @@
     [(skip-compile expr exprs ...)
      (begin
        (skip-compile exprs ...))]))
-
-;; INCLUDE ON THE NEXT COMPILATION
-; (skip-compile
-(require-builtin helix/core/text as text.)
-(struct CharIterator (slice offset index) #:mutable)
-;; Mutable advance the iterator
-(define (CharIterator-next! char-iterator)
-  (define return-value
-    (text.slice-char-ref (CharIterator-slice char-iterator) (CharIterator-offset char-iterator)))
-  (if (char? return-value)
-      (begin
-        (set-CharIterator-offset! char-iterator (+ (CharIterator-offset char-iterator) 1))
-        (set-CharIterator-index! char-iterator (+ (CharIterator-index char-iterator) 1))
-        (log::info! (to-string return-value))
-        return-value)
-      return-value))
-
-(define (CharIterator-take-while-whitespace char-iterator count)
-  (define char (CharIterator-next! char-iterator))
-  (if (and (char? char) (char-whitespace? char))
-      (CharIterator-take-while-whitespace char-iterator (+ 1 count))
-      count))
-
-;; TODO: Need to double check that the parens don't exist within a character declaration
-;; or within a string
-(define (close-paren? char)
-  (or (equal? char #\)) (equal? char #\]) (equal? char #\})))
-
-(define (open-paren? char)
-  (or (equal? char #\() (equal? char #\[) (equal? char #\{)))
-
-(define (string-repeat str count)
-  (apply string-append (map (lambda (_) " ") (range 0 count))))
-;; Crunch the slice in reverse, keeping track of the depth, and the index (offset) that we're at. Since we're doing it
-;; in reverse, the _index-complement is just to save us some funny business of math
-(define (walk-backwards line depth _index-complement index)
-  (define char (text.slice-char-ref line _index-complement))
-
-  (log::info!
-   (to-string "Calling walk-backwards with char" (text.slice->string line) char _index-complement))
-
-  (cond
-    [(close-paren? char) (walk-backwards line (+ depth 1) (- _index-complement 1) (+ index 1))]
-    [(open-paren? char)
-
-     (if (equal? depth 0)
-
-         (let ([offset (+ 1 _index-complement)]
-               [char-iter-from-paren (CharIterator line _index-complement 0)]
-               ;; TODO: Check if this var is used
-               [end 'uninitialized])
-
-           (log::info! (to-string "Offset is" offset))
-           (log::info! (to-string "index is" index))
-
-           ;; Walk until we've found whitespace, and then crunch the whitespace until the start of the next symbol
-           ;; if there is _no_ symbol after that, we should just default to the default behavior
-           (let loop ([index (CharIterator-index char-iter-from-paren)]
-                      [char (CharIterator-next! char-iter-from-paren)])
-             (cond
-               ;; We have whitespace, we've finished crunching the first word.
-               [(and (char? char) (char-whitespace? char))
-                (begin
-                  ;; This is the end of our range
-                  (let ([last index])
-                    (log::info! (to-string "Inner crunching index: " index))
-                    (log::info! (text.slice->string (text.slice->slice line offset (+ offset index))))
-
-                    (cond
-
-                      ;; If we have multiple parens in a row, match to the start:
-                      ;; for instance, (cond [(equal? x 10) RET])
-                      ;;                     ^ We want to line up to this
-                      ;;
-                      ;; To do so, just create an indent that is the width of the offset.
-                      [(open-paren? (text.slice-char-ref line offset))
-                       (log::info! "Found an open paren")
-                       (string-repeat " " offset)]
-                      [(hashset-contains?
-                        LISP-WORDS
-                        ;; TODO: Figure out these strange off by one errors...
-                        (~> line (text.slice->slice offset (+ offset index -1)) (text.slice->string)))
-
-                       (log::info! "Found a Lisp-Word!")
-
-                       (string-repeat " " (+ 1 offset))]
-                      [else
-                       =>
-
-                       (let ([last (CharIterator-take-while-whitespace char-iter-from-paren index)])
-                         (log::info! (to-string "Length: " (text.slice-len-chars line)))
-                         (log::info! (to-string "Last + offset" (+ last offset)))
-
-                         ;; If we have something like (list RET)
-                         ;; We want the result to look like:
-                         ;; (list
-                         ;;   )
-                         ;;
-                         ;; So we special case the lack of an additional word after
-                         ;; the first symbol
-                         (if (and (equal? (text.slice-len-chars line) (+ last offset 1))
-                                  (char-whitespace? (text.slice-char-ref line (+ last offset))))
-                             (string-repeat " " (+ offset 1))
-                             (string-repeat " " (+ last offset))))])))]
-
-               ;; We found a character, but it wasn't whitespace. Advance the loop.
-               [(char? char)
-
-                (loop (CharIterator-index char-iter-from-paren)
-                      (CharIterator-next! char-iter-from-paren))]
-               ;; We ran out of characters in the iterator. Fallback and add 1 to the offset
-               [else
-                =>
-                (string-repeat " " (+ offset 1))])))
-
-         (walk-backwards line (- depth 1) (- _index-complement 1) (+ index 1)))]
-
-    [(char? char) (walk-backwards line depth (- _index-complement 1) (+ index 1))]
-
-    ;; If we haven't found a match, return the depth
-    [else
-     =>
-     depth]))
-
-(define (indent-loop text-up-to-cursor cursor depth)
-
-  ;; Current line that we're iterating over
-  (define line (text.slice->line text-up-to-cursor cursor))
-
-  (log::info! (to-string "Calling indent loop at line: " (text.slice->string line)))
-
-  (if (text.slice-trim-and-starts-with? line ";")
-      (if (equal? cursor 0)
-          ;; We're at the top
-          (begin
-
-            (log::info! "Cursor at the top, returning empty indent")
-
-            "")
-          ;; Go forward a line
-          (indent-loop text-up-to-cursor (- cursor 1) depth))
-
-      ;; TODO: slice-len-chars might need to be (- (text.slice-len-chars line) 1)
-      (let ([result (walk-backwards line depth (- (text.slice-len-chars line) 1) 0)])
-
-        (cond
-          ;; We found a string, meaning we have our indent. Return that directly
-          [(string? result) result]
-          ;; We're at the top, just return an empty string
-          [(equal? cursor 0)
-           (log::info! "Cursor at the top, returning empty indent")
-           ""]
-
-          [(int? result) (indent-loop text-up-to-cursor (- cursor 1) result)]
-          [else
-           =>
-           (error! "Unknown result type for the branch")]))))
-
-; (provide scheme-indent)
-(define (scheme-indent-impl text line-before line-before-end-pos)
-  (define byte-pos (text.slice-char->byte text line-before-end-pos))
-  (define text-up-to-cursor (text.slice->byte-slice text 0 byte-pos))
-  (indent-loop text-up-to-cursor line-before 0))
-
-; )
-
-(define (get-document-as-slice cx)
-  (let* ([editor (cx-editor! cx)]
-         [focus (editor-focus editor)]
-         [focus-doc-id (editor->doc-id editor focus)]
-         [document (editor-get-doc-if-exists editor focus-doc-id)])
-    (text.document->slice document)))
-
-(provide scheme-indent)
-
-;; Override the scheme indents
-(define (scheme-indent cx)
-  ;; This is our rope
-  (define rope (get-document-as-slice cx))
-  (define current-line (helix.static.get-current-line-number cx))
-  (define pos (hx.cx->pos cx))
-
-  ;; This will call the function in the right spot!
-  (hx.custom-insert-newline cx (scheme-indent-impl rope current-line pos)))

@@ -2,8 +2,19 @@
          (for-syntax "../prelude.scm"))
 (require-helix)
 
-; (require "steel/contracts/contract.scm")
+;; Book keeping for keymaps
+(require (only-in "keymaps.scm" *reverse-buffer-map-insert*))
 
+(provide make-new-labelled-buffer!
+         temporarily-switch-focus
+         open-or-switch-focus
+         currently-in-labelled-buffer?
+         open-labelled-buffer
+         maybe-fetch-doc-id
+         fetch-doc-id)
+
+;; Temporary buffer map, key -> doc id
+(define *temporary-buffer-map* (hash))
 ;; Last focused - will allow us to swap between the last view we were at
 (define *last-focus* 'uninitialized)
 
@@ -25,7 +36,17 @@
 (define (get-current-doc-id cx)
   (let* ([editor (cx-editor! cx)] [focus (editor-focus editor)]) (editor->doc-id editor focus)))
 
-(define *temporary-buffer-map* (hash))
+;;@doc
+;; Attempts to find the doc id associated with the given key, returns #false if
+;; the key doesn't exist
+(define (maybe-fetch-doc-id key)
+  (hash-try-get *temporary-buffer-map* key))
+
+;;@doc
+;; Attempts to find the doc id associated with the given key, errors if
+;; the key does not exist
+(define (fetch-doc-id key)
+  (hash-get *temporary-buffer-map* key))
 
 ;;@doc
 ;; Creates a new labelled buffer that can be access by the key `label`.
@@ -43,11 +64,19 @@
   ;; if it has been passed in
   (helix.vsplit-new cx '() helix.PromptEvent::Validate)
 
+  ;; Label this buffer - it will now show up instead of `[scratch]`
+  (set-scratch-buffer-name! cx (string-append "[" label "]"))
+
+  ; (when (eq? side 'left)
+  ;   (helix.static.swap_view_left cx))
+
   (when language-type
     (helix.set-language cx (list language-type) helix.PromptEvent::Validate))
 
   ;; Add the document id to our internal mapping.
   (set! *temporary-buffer-map* (hash-insert *temporary-buffer-map* label (get-current-doc-id cx)))
+
+  (*reverse-buffer-map-insert* (doc-id->usize (get-current-doc-id cx)) label)
 
   ;; Go back to where we were before
   (editor-set-focus! (cx-editor! cx) last-focused)

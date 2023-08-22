@@ -16,6 +16,8 @@
 (require-builtin steel/process as process/)
 (require "steel/lists/lists.scm")
 
+(require (only-in "cogs/file-tree.scm" FILE-TREE-KEYBINDINGS FILE-TREE))
+
 ; (helix.config-reload *helix.cx* '() helix.PromptEvent::Validate)
 
 ;; Nice! This doesn't segfault anymore
@@ -157,59 +159,14 @@
 ;; For example, this will make it impossible to enter insert mode:
 ;; (hash "normal" (hash "i" 'no_op))
 
-(define scm-keybindings
-  (hash "normal"
-        (hash "P" (hash "n" ':run-prompt) "tab" ':fold-directory)
-        "insert"
-        (hash "ret" ':scheme-indent)))
-
-(define file-tree-keybindings
-  (hash "normal"
-        (hash "i"
-              'no_op
-              "v"
-              'no_op
-              "|"
-              'no_op
-              "!"
-              'no_op
-              "A-!"
-              'no_op
-              "$"
-              'no_op
-              "C-a"
-              'no_op
-              "C-x"
-              'no_op
-              "a"
-              'no_op
-              "I"
-              'no_op
-              "o"
-              'no_op
-              "O"
-              'no_op
-              "d"
-              'no_op
-              "A-d"
-              'no_op
-              "tab"
-              ':fold-directory
-              "E"
-              ':unfold-all-one-level
-              "o"
-              ':open-file-from-picker
-              "n"
-              (hash "f" ':create-file "d" ':create-directory)
-              "F"
-              ':fold-all)))
+(define scm-keybindings (hash "insert" (hash "ret" ':scheme-indent)))
 
 ;; Grab whatever the existing keybinding map is
 (define standard-keybindings (helix-current-keymap))
 (define file-tree-base (helix-current-keymap))
 
 (merge-keybindings standard-keybindings scm-keybindings)
-(merge-keybindings file-tree-base file-tree-keybindings)
+(merge-keybindings file-tree-base FILE-TREE-KEYBINDINGS)
 
 ;; <scratch> + <doc id> is probably the best way to handle this?
-(set-global-buffer-or-extension-keymap (hash "scm" standard-keybindings "file-tree" file-tree-base))
+(set-global-buffer-or-extension-keymap (hash "scm" standard-keybindings FILE-TREE file-tree-base))
