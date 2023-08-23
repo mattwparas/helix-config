@@ -15,6 +15,17 @@
          FILE-TREE-KEYBINDINGS
          create-file-tree)
 
+;; labelled buffers ->
+(require (only-in "labelled-buffers.scm"
+                  make-new-labelled-buffer!
+                  temporarily-switch-focus
+                  open-or-switch-focus
+                  currently-in-labelled-buffer?
+                  open-labelled-buffer
+                  maybe-fetch-doc-id
+                  fetch-doc-id))
+
+;; TODO: This should be moved to a shared module somewhere, once the component API is cleaned up
 (define (helix-prompt! cx prompt-str thunk)
   (push-component! cx (Prompt::new prompt-str thunk)))
 
@@ -60,16 +71,6 @@
               (hash "f" ':create-file "d" ':create-directory)
               "F"
               ':fold-all)))
-
-;; labelled buffers ->
-(require (only-in "labelled-buffers.scm"
-                  make-new-labelled-buffer!
-                  temporarily-switch-focus
-                  open-or-switch-focus
-                  currently-in-labelled-buffer?
-                  open-labelled-buffer
-                  maybe-fetch-doc-id
-                  fetch-doc-id))
 
 ;; This needs to be globally unique
 (define FILE-TREE "github.com/mattwparas/helix-config/file-tree")

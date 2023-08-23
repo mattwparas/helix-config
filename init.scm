@@ -33,7 +33,7 @@
 ;; For example, this will make it impossible to enter insert mode:
 ;; (hash "normal" (hash "i" 'no_op))
 
-(define scm-keybindings (hash "insert" (hash "ret" ':scheme-indent)))
+(define scm-keybindings (hash "insert" (hash "ret" ':scheme-indent "C-l" ':insert-lambda)))
 
 ;; Grab whatever the existing keybinding map is
 (define standard-keybindings (helix-current-keymap))

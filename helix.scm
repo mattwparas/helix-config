@@ -8,12 +8,7 @@
 
 (require "steel/sorting/merge-sort.scm")
 
-; set-theme-dracula
-; set-theme-custom
-; theme-then-vsplit
-; custom-undo
-(provide lam
-         ; delete-word-forward
+(provide insert-lambda
          insert-string-at-selection
          highlight-to-matching-paren
          delete-sexpr
@@ -29,8 +24,6 @@
          current-focus
          git-add)
 
-;; Configuring file tree!
-
 ;;;;;;;;;;;;;;; File Tree ;;;;;;;;;;;;;;;;;
 
 ;; TODO: Add a way to provide-all-out from a module to make this easier
@@ -45,6 +38,15 @@
          fold-all
          FILE-TREE
          FILE-TREE-KEYBINDINGS)
+
+;;;;;;;;;;;;;; Git status picker ;;;;;;;;;;;;;;;
+
+(require "cogs/git-status-picker.scm")
+
+(provide create-gs-picker
+         add-modified-file)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (provide scheme-indent)
 
@@ -196,21 +198,21 @@
   (let* ([editor (cx-editor! cx)] [focus (editor-focus editor)]) (editor->doc-id editor focus)))
 
 ;; Create a named repl, that we can reference statefully
-(struct SteelRepl (doc-id))
+; (struct SteelRepl (doc-id))
 
-(define *engine* (Engine::new))
+; (define *engine* (Engine::new))
 
-(define (append-to-buffer cx)
-  (helix.static.goto_file_end cx)
-  (helix.static.insert_newline cx)
-  (helix.static.insert_string cx "> git status")
-  (helix.static.insert_newline cx)
-  (helix.insert-output cx '("git" "status") helix.PromptEvent::Validate))
+; (define (append-to-buffer cx)
+;   (helix.static.goto_file_end cx)
+;   (helix.static.insert_newline cx)
+;   (helix.static.insert_string cx "> git status")
+;   (helix.static.insert_newline cx)
+;   (helix.insert-output cx '("git" "status") helix.PromptEvent::Validate))
 
-;;@doc
-;; Run the current test in a shell?
-(define (run-rust-test-under-cursor cx)
-  (error! "Unimplemented!"))
+; ;;@doc
+; ;; Run the current test in a shell?
+; (define (run-rust-test-under-cursor cx)
+;   (error! "Unimplemented!"))
 
 ; ;;@doc
 ; ;; Call this dummy function!
@@ -241,7 +243,7 @@
 
 ;;@doc
 ;; Insert a lambda
-(define (lam cx)
+(define (insert-lambda cx)
   (helix.static.insert_char cx #\λ)
   (helix.static.insert_mode cx))
 
@@ -250,11 +252,6 @@
 (define (insert-string-at-selection cx str)
   (helix.static.insert_string cx str)
   (helix.static.insert_mode cx))
-
-; ;;@doc
-; ;; Delete the word forward
-; (define (delete-word-forward cx)
-;   (helix.static.delete_word_forward cx))
 
 ;;@doc
 ;; Registers a minor mode with the registered modifer and key map
@@ -331,16 +328,16 @@
 ; (minor-mode! "+" ("l" => lam)
 ;                  ("q" => (set-theme-dracula lam)))
 
-(minor-mode! "P"
-             ("l" => lam)
-             ("p" => highlight-to-matching-paren)
-             ("d" => delete-sexpr)
-             ("r" => run-expr)
-             ; ("t" => run-prompt)
-             ;; ("t" => test-component)
-             )
+;; (minor-mode! "P"
+;; ("l" => lam)
+;;           ("p" => highlight-to-matching-paren)
+;;           ("d" => delete-sexpr)
+;;           ("r" => run-expr)
+; ("t" => run-prompt)
+;; ("t" => test-component)
+;;          )
 
-(make-minor-mode! "+" (hash "l" ":lam"))
+;; (make-minor-mode! "+" (hash "l" ":lam"))
 
 (define (git-status cx)
   (helix.run-shell-command cx '("git" "status") helix.PromptEvent::Validate))
@@ -421,17 +418,6 @@
                                  (async-write-from-terminal-loop cx line)
 
                                  (terminal-loop cx))))))))
-
-; (write-from-terminal-loop cx)
-
-; (when (>= fail-check 1000)
-;   (increase-terminal-refresh-delay!)
-;   (reset-fail-check!))
-
-; ;; Create closure to callback?
-; (enqueue-thread-local-callback-with-delay cx
-;                                           *terminal-refresh-delay*
-;                                           (lambda (cx) (terminal-loop cx))))))
 
 ;; Goes until there isn't any output to read, writing each line
 (skip-compile (define (read-until-no-more-lines cx)
