@@ -173,8 +173,8 @@
                                             (helix.static.open_below cx)
                                             (helix.static.goto_line_start cx)))))))
 
+;;@doc
 ;; Fold the directory that we're currently hovering over
-;; TODO: Assert that we're in a valid file picker buffer
 (define (fold-directory cx)
   (when (currently-in-labelled-buffer? cx FILE-TREE)
     (define directory-to-fold (list-ref *file-tree* (helix.static.get-current-line-number cx)))
@@ -187,6 +187,7 @@
 
         (update-file-tree cx)))))
 
+;;@doc
 ;; Create a file under wherever we are
 (define (create-file cx)
   (when (currently-in-labelled-buffer? cx FILE-TREE)
@@ -242,6 +243,8 @@
                               (open-labelled-buffer cx FILE-TREE)
                               (update-file-tree cx))))
 
+;;@doc
+;; Create a new directory
 (define (create-directory cx)
   (when (currently-in-labelled-buffer? cx FILE-TREE)
     (define currently-selected (list-ref *file-tree* (helix.static.get-current-line-number cx)))
@@ -259,6 +262,8 @@
                      (hx.create-directory directory-name)
                      (enqueue-thread-local-callback cx refresh-file-tree)))))
 
+;;@doc
+;; Fold all of the directories
 (define (fold-all cx)
   (when (currently-in-labelled-buffer? cx FILE-TREE)
 
