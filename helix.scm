@@ -53,6 +53,37 @@
 (define (git-add cx)
   (shell cx "git" "add" "%"))
 
+(require "cogs/recentf.scm")
+(provide refresh-files
+         flush-recent-files
+         recentf-snapshot
+         recentf-open-files)
+
+; (define foo 'uninitialized)
+
+; (provide logging)
+; (define (logging cx)
+
+; (create-file-tree *context*))
+
+; (define (read-lines path)
+
+;   (define port (open-input-file path))
+
+;   (define (get-next-word! port)
+;     (define line (read-line-from-port port))
+;     (if (symbol? line) #f (trim line)))
+
+;   (define (read-to-list lst)
+;     (define next-word (get-next-word! port))
+;     (if next-word (read-to-list (cons next-word lst)) lst))
+
+;   (read-to-list '()))
+
+; (provide get-git-ignore)
+; (define (get-git-ignore cx)
+;   (helix.insert-output cx (cons "echo" (read-lines ".gitignore")) helix.PromptEvent::Validate))
+
 ;; Experimenting with using a buffer as a repl? Continuously write results to it...
 ;; is there a way to do that? Or use a widget? I suppose a buffer could be treated
 ;; as a buffer if we feel so inclined...
@@ -127,6 +158,12 @@
 
 (define (helix-prompt! cx prompt-str thunk)
   (push-component! cx (Prompt::new prompt-str thunk)))
+
+;; TODO: Move this to its own component API - components are pretty compelling to have, but
+;; require just a tad bit more integration than standard commands
+(provide helix-picker!)
+(define (helix-picker! cx . pick-list)
+  (push-component! cx (Picker::new pick-list)))
 
 ;; I think options might still come through as void?
 (define (unwrap-or obj alt)

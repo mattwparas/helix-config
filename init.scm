@@ -10,7 +10,7 @@
 (define rng (rand::thread-rng!))
 
 ;; Picking one from the possible themes is _fine_
-(define possible-themes '("ayu_mirage" "tokyonight_storm" "catppuccin_macchiato"))
+(define possible-themes '("tokyonight_storm" "catppuccin_macchiato" "bogster"))
 
 (define (select-random lst)
   (let ([index (rand::rng->gen-range rng 0 (length lst))]) (list-ref lst index)))
@@ -20,6 +20,12 @@
   (helix.theme *helix.cx* (list (select-random options)) helix.PromptEvent::Validate))
 
 (randomly-pick-theme possible-themes)
+
+;;;;;;;;;;;;;;;;;;;;;;;; Default modes ;;;;;;;;;;;;;;;;;;;;;;;
+
+;; Enable the recentf snapshot, will watch every 2 minutes for active files,
+;; and flush those down to disk
+(recentf-snapshot *helix.cx*)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;; Options ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -37,6 +43,7 @@
 
 ;; Grab whatever the existing keybinding map is
 (define standard-keybindings (helix-current-keymap))
+
 (define file-tree-base (helix-current-keymap))
 
 (merge-keybindings standard-keybindings scm-keybindings)
@@ -44,3 +51,6 @@
 
 ;; <scratch> + <doc id> is probably the best way to handle this?
 (set-global-buffer-or-extension-keymap (hash "scm" standard-keybindings FILE-TREE file-tree-base))
+
+;; Set a global keybinding
+(make-minor-mode! "C-r" (hash "f" ':recentf-open-files))
