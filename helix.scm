@@ -374,12 +374,13 @@
 ;; ("t" => test-component)
 ;;          )
 
-;; (make-minor-mode! "+" (hash "l" ":lam"))
+; (make-minor-mode! "+" (hash "l" ":lam"))
 
 (define (git-status cx)
   (helix.run-shell-command cx '("git" "status") helix.PromptEvent::Validate))
 
-(minor-mode! "G" ("s" => git-status))
+; (minor-mode! "G" ("s" => git-status))
+; (minor-mode! "C-r" ("f" => recentf-open-files))
 
 ;;@doc
 ;; Reload the helix.scm file

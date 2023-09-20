@@ -7,6 +7,16 @@
 
 (require (only-in "cogs/file-tree.scm" FILE-TREE-KEYBINDINGS FILE-TREE))
 
+;; Set a global keybinding
+(make-minor-mode! "C-r" (hash "f" ":recentf-open-files"))
+
+;; Currently, it is not ideal, but we need to set up the global keybindings first, then refresh the config
+;; against the toml config - then we can proceed.
+;; This will change once the toml config is deprecated / or the integration is adjusted
+(helix.config-reload *helix.cx* '() helix.PromptEvent::Validate)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (define rng (rand::thread-rng!))
 
 ;; Picking one from the possible themes is _fine_
@@ -27,12 +37,6 @@
 ;; and flush those down to disk
 (recentf-snapshot *helix.cx*)
 
-;;;;;;;;;;;;;;;;;;;;;;;;;; Options ;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(define *config-map* '((file-picker.hidden false) (cursorline true) (soft-wrap.enable true)))
-
-(apply-options *helix.cx* *config-map*)
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;; Keybindings ;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; To remove a binding, set it to 'no_op
@@ -52,5 +56,8 @@
 ;; <scratch> + <doc id> is probably the best way to handle this?
 (set-global-buffer-or-extension-keymap (hash "scm" standard-keybindings FILE-TREE file-tree-base))
 
-;; Set a global keybinding
-(make-minor-mode! "C-r" (hash "f" ':recentf-open-files))
+;;;;;;;;;;;;;;;;;;;;;;;;;; Options ;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define *config-map* '((file-picker.hidden false) (cursorline true) (soft-wrap.enable true)))
+
+(apply-options *helix.cx* *config-map*)

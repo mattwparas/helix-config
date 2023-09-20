@@ -17,6 +17,9 @@
   (if (editor-doc-exists? editor doc-id) (editor->get-document editor doc-id) #f))
 
 (define (read-recent-files)
+  (unless (path-exists? ".helix")
+    (create-directory! ".helix"))
+
   (cond
     ;; We're just storing these as strings with the quotes still there, so that we
     ;; can call `read` on them accordingly
