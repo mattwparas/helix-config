@@ -44,10 +44,12 @@
 (define (refresh-files cx)
   (let* ([editor (cx-editor! cx)]
          [document-ids (editor-all-documents editor)]
-         [currently-opened-files (map (lambda (doc-id)
-                                        (let ([document (editor-get-doc-if-exists editor doc-id)])
-                                          (Document-path document)))
-                                      document-ids)])
+         [currently-opened-files (filter string?
+                                         (map (lambda (doc-id)
+                                                (let ([document (editor-get-doc-if-exists editor
+                                                                                          doc-id)])
+                                                  (Document-path document)))
+                                              document-ids))])
 
     ;; Merge the files with the existing list
     (let* ([full-list (append currently-opened-files *recent-files*)]
