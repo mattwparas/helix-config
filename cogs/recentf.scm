@@ -53,7 +53,7 @@
     (let* ([full-list (append currently-opened-files *recent-files*)]
            [deduped (remove-duplicates full-list)])
 
-      (take deduped MAX-FILE-COUNT))))
+      (set! *recent-files* (take deduped MAX-FILE-COUNT)))))
 
 (define (flush-recent-files)
   ;; Open the output file, and then we'll write all the recent files down
