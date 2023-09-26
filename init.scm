@@ -7,20 +7,14 @@
 
 (require (only-in "cogs/file-tree.scm" FILE-TREE-KEYBINDINGS FILE-TREE))
 
-;; Set a global keybinding
-(make-minor-mode! "C-r" (hash "f" ":recentf-open-files"))
-
-;; Currently, it is not ideal, but we need to set up the global keybindings first, then refresh the config
-;; against the toml config - then we can proceed.
-;; This will change once the toml config is deprecated / or the integration is adjusted
-(helix.config-reload *helix.cx* '() helix.PromptEvent::Validate)
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define rng (rand::thread-rng!))
 
 ;; Picking one from the possible themes is _fine_
-(define possible-themes '("tokyonight_storm" "catppuccin_macchiato" "bogster"))
+(define possible-themes '("tokyonight_storm" "catppuccin_macchiato" "kanagawa"))
+
+; (define possible-themes '("kanagawa"))
 
 (define (select-random lst)
   (let ([index (rand::rng->gen-range rng 0 (length lst))]) (list-ref lst index)))
@@ -55,6 +49,20 @@
 
 ;; <scratch> + <doc id> is probably the best way to handle this?
 (set-global-buffer-or-extension-keymap (hash "scm" standard-keybindings FILE-TREE file-tree-base))
+
+;; Set the global keybinding for now
+(add-global-keybinding
+ (hash
+  "normal"
+  (hash
+   "C-r"
+   (hash
+    "f"
+    ":recentf-open-files") ;; "space" (hash "/" ":search-in-directory") ;; Uncomment if you'd like to make this keybinding
+   )))
+
+; (make-minor-mode! "C-r" (hash "f" ":recentf-open-files"))
+; (make-minor-mode! "space" (hash "/" ":search-in-directory"))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;; Options ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

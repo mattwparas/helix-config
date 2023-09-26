@@ -10,7 +10,8 @@
          *reverse-buffer-map-insert*
          merge-keybindings
          helix-current-keymap
-         set-global-buffer-or-extension-keymap)
+         set-global-buffer-or-extension-keymap
+         add-global-keybinding)
 
 (define helix-current-keymap helix.keymaps.helix-current-keymap)
 
@@ -49,3 +50,10 @@
 (define/c (set-global-buffer-or-extension-keymap map)
   (->c (hashof string? helix.keymaps.keymap?) void?)
   (*keybinding-map-set!* map))
+
+;;@doc
+;; Add keybinding to the global default
+(define (add-global-keybinding map)
+  (helix.keymaps.helix-merge-keybindings
+   helix.keymaps.*global-keybinding-map*
+   (~> map (value->jsexpr-string) (helix.keymaps.helix-string->keymap))))

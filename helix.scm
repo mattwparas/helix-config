@@ -59,6 +59,24 @@
          recentf-snapshot
          recentf-open-files)
 
+(provide search-in-directory)
+(define (search-in-directory cx)
+  (helix.static.search-in-directory cx "~/.config/helix/cogs"))
+
+; (provide search-in-directory)
+; (define (search-in-directory cx dir)
+;   (let ([cwd (helix.static.get-helix-cwd cx)])
+
+;     (helix.change-current-directory cx (list dir) helix.PromptEvent::Validate)
+;     ;; After changing the directory, attempt the search
+;     (enqueue-thread-local-callback
+;      cx
+;      (lambda (cx)
+;        (helix.static.global_search cx)
+;        (enqueue-thread-local-callback
+;         cx
+;         (lambda (cx) (helix.change-current-directory cx (list cwd) helix.PromptEvent::Validate)))))))
+
 ; (define foo 'uninitialized)
 
 ; (provide logging)
@@ -299,9 +317,8 @@
 ;;    (hash "P" ":lam"))
 ;; ```
 (define (make-minor-mode! modifier bindings)
-  (~> (hash "normal" (hash modifier bindings))
-      (value->jsexpr-string)
-      (helix.keybindings.set-keybindings!)))
+  (~> (hash "normal" (hash modifier bindings)) (value->jsexpr-string) (error "DEPRECATE ME")))
+; (helix.keybindings.set-keybindings!)))
 
 (define-syntax minor-mode!
   (syntax-rules (=>)
