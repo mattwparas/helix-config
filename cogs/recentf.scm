@@ -6,11 +6,14 @@
 (provide refresh-files
          flush-recent-files
          recentf-open-files
-         recentf-snapshot)
+         recentf-snapshot
+         get-recent-files)
 
 (define MAX-FILE-COUNT 25)
 
 (define RECENTF-FILE ".helix/recent-files.txt")
+
+(define ENABLED #f)
 
 ;; Only get the doc if it exists - also use real options instead of false here cause it kinda sucks
 (define (editor-get-doc-if-exists editor doc-id)
@@ -27,6 +30,9 @@
     [else '()]))
 
 (define *recent-files* (read-recent-files))
+
+(define (get-recent-files)
+  *recent-files*)
 
 (define (remove-duplicates lst)
   ;; Iterate over, grabbing each value, check if its in the hash, otherwise skip it

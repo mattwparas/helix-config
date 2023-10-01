@@ -11,7 +11,8 @@
          merge-keybindings
          helix-current-keymap
          set-global-buffer-or-extension-keymap
-         add-global-keybinding)
+         add-global-keybinding
+         deep-copy-global-keybindings)
 
 (define helix-current-keymap helix.keymaps.helix-current-keymap)
 
@@ -57,3 +58,8 @@
   (helix.keymaps.helix-merge-keybindings
    helix.keymaps.*global-keybinding-map*
    (~> map (value->jsexpr-string) (helix.keymaps.helix-string->keymap))))
+
+;;@doc
+;; Deep copy the global keymap
+(define (deep-copy-global-keybindings)
+  (helix.keymaps.helix-deep-copy-keymap helix.keymaps.*global-keybinding-map*))

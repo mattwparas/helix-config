@@ -7,6 +7,8 @@
 
 (require (only-in "cogs/file-tree.scm" FILE-TREE-KEYBINDINGS FILE-TREE))
 
+(require (only-in "cogs/recentf.scm" recentf-open-files get-recent-files))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define rng (rand::thread-rng!))
@@ -37,19 +39,6 @@
 ;; For example, this will make it impossible to enter insert mode:
 ;; (hash "normal" (hash "i" 'no_op))
 
-(define scm-keybindings (hash "insert" (hash "ret" ':scheme-indent "C-l" ':insert-lambda)))
-
-;; Grab whatever the existing keybinding map is
-(define standard-keybindings (helix-current-keymap))
-
-(define file-tree-base (helix-current-keymap))
-
-(merge-keybindings standard-keybindings scm-keybindings)
-(merge-keybindings file-tree-base FILE-TREE-KEYBINDINGS)
-
-;; <scratch> + <doc id> is probably the best way to handle this?
-(set-global-buffer-or-extension-keymap (hash "scm" standard-keybindings FILE-TREE file-tree-base))
-
 ;; Set the global keybinding for now
 (add-global-keybinding
  (hash
@@ -61,8 +50,18 @@
     ":recentf-open-files") ;; "space" (hash "/" ":search-in-directory") ;; Uncomment if you'd like to make this keybinding
    )))
 
-; (make-minor-mode! "C-r" (hash "f" ":recentf-open-files"))
-; (make-minor-mode! "space" (hash "/" ":search-in-directory"))
+(define scm-keybindings (hash "insert" (hash "ret" ':scheme-indent "C-l" ':insert-lambda)))
+
+;; Grab whatever the existing keybinding map is
+(define standard-keybindings (deep-copy-global-keybindings))
+
+(define file-tree-base (deep-copy-global-keybindings))
+
+(merge-keybindings standard-keybindings scm-keybindings)
+(merge-keybindings file-tree-base FILE-TREE-KEYBINDINGS)
+
+;; <scratch> + <doc id> is probably the best way to handle this?
+(set-global-buffer-or-extension-keymap (hash "scm" standard-keybindings FILE-TREE file-tree-base))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;; Options ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
