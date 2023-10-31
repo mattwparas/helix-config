@@ -1,10 +1,9 @@
-(require "prelude.scm"
-         (for-syntax "prelude.scm"))
+(require-builtin helix/core/typable as helix.)
+(require-builtin helix/core/static as helix.static.)
+(require-builtin helix/core/editor)
 
 (require "cogs/keymaps.scm")
 (require (only-in "cogs/scheme-indent.scm" scheme-indent))
-
-(require-helix)
 
 (require "steel/sorting/merge-sort.scm")
 
@@ -59,9 +58,70 @@
          recentf-snapshot
          recentf-open-files)
 
-(provide search-in-directory)
-(define (search-in-directory cx)
-  (helix.static.search-in-directory cx "~/.config/helix/cogs"))
+(provide fmt-lambda)
+
+(define (fmt-lambda cx)
+
+  (define current-selection (helix.static.current-selection-object cx))
+
+  (helix.static.select_all cx)
+  (helix.static.regex-selection cx "lambda\n")
+  (helix.static.replace-selection-with cx "λ\n")
+
+  (helix.static.select_all cx)
+  (helix.static.regex-selection cx "lambda ")
+  (helix.static.replace-selection-with cx "λ ")
+
+  (helix.static.merge_selections cx)
+
+  (helix.static.move_visual_line_down cx)
+  (helix.static.move_visual_line_up cx))
+
+(require-builtin steel/random as rand::)
+
+(define rng (rand::thread-rng!))
+
+;; Picking one from the possible themes is _fine_
+; (define possible-themes '("tokyonight_storm" "catppuccin_macchiato" "kanagawa"))
+
+(define (select-random lst)
+  (let ([index (rand::rng->gen-range rng 0 (length lst))]) (list-ref lst index)))
+
+(define (randomly-pick-theme cx options)
+  ;; Randomly select the theme from the possible themes list
+  (helix.theme cx (list (select-random options)) helix.PromptEvent::Validate))
+
+(provide change-theme-on-mode-change-hook)
+
+(define (change-theme-on-mode-change-hook cx _event)
+  (randomly-pick-theme cx (cx->themes cx)))
+
+(provide move-window-left)
+(define (move-window-left cx)
+  (helix.static.move-window-far-left cx))
+
+; (provide dummy)
+; (define (dummy cx)
+;   (helix.static.show-completion-prompt-with cx '("foo" "bar" "baz")))
+
+; (provide prompt-on-char-press)
+
+; (define (prompt-on-char-press cx char)
+;   (when (equal? char #\f)
+;     (dummy cx)))
+
+; (helix.static.set-current-selection-object! cx current-selection))
+
+; (provide search-in-directory)
+; (define (search-in-directory cx)
+;   (enqueue-thread-local-callback cx
+;                                  (lambda (cx)
+;                                    (helix.static.search-in-directory cx "~/.config/helix/cogs"))))
+
+; (provide find-note)
+; (define (find-note cx)
+;   (helix.change-current-directory (list "~/.config/helix/cogs") helix.PromptEvent::Validate)
+;   (helix.open cx (list "~/.config/helix/cogs") helix.PromptEvent::Validate))
 
 ; (provide search-in-directory)
 ; (define (search-in-directory cx dir)

@@ -1,7 +1,6 @@
-(require "../prelude.scm"
-         (for-syntax "../prelude.scm"))
-
-(require-helix)
+(require-builtin helix/core/typable as helix.)
+(require-builtin helix/core/static as helix.static.)
+(require-builtin helix/core/editor)
 
 (require "steel/sorting/merge-sort.scm")
 
@@ -13,7 +12,8 @@
          fold-all
          FILE-TREE
          FILE-TREE-KEYBINDINGS
-         create-file-tree)
+         create-file-tree
+         file-tree-set-side!)
 
 ;; labelled buffers ->
 (require (only-in "labelled-buffers.scm"
@@ -74,6 +74,14 @@
 
 ;; This needs to be globally unique
 (define FILE-TREE "github.com/mattwparas/helix-config/file-tree")
+
+(define file-tree-open-to-side 'left)
+
+;; TODO: This should probably be a contract
+(define (file-tree-set-side! side)
+  (unless (or (equal? side 'left) (equal? side 'right))
+    (error! "file-tree-set-side! requires either the 'left or 'right"))
+  (set! file-tree-open-to-side side))
 
 (define *file-tree* '())
 (define *directories* (hash))
@@ -154,24 +162,35 @@
   (define doc-id (maybe-fetch-doc-id FILE-TREE))
 
   (unless doc-id
-    (make-new-labelled-buffer! cx #:label FILE-TREE #:side 'left))
+    (make-new-labelled-buffer! cx #:label FILE-TREE #:side file-tree-open-to-side))
 
   (unless (~> cx (cx-editor!) (editor-doc-exists? (fetch-doc-id FILE-TREE)))
-    (make-new-labelled-buffer! cx #:label FILE-TREE #:side 'left))
+    (make-new-labelled-buffer! cx #:label FILE-TREE #:side file-tree-open-to-side))
 
-  (temporarily-switch-focus cx
-                            (lambda (cx)
-                              (open-labelled-buffer cx FILE-TREE)
-                              (helix.static.select_all cx)
-                              (helix.static.delete_selection cx)
+  (temporarily-switch-focus
+   cx
+   (lambda (cx)
+     (open-labelled-buffer cx FILE-TREE)
 
-                              ;; Update the current file tree value
-                              (set! *file-tree*
-                                    (tree (helix-find-workspace)
-                                          (lambda (str)
-                                            (helix.static.insert_string cx str)
-                                            (helix.static.open_below cx)
-                                            (helix.static.goto_line_start cx)))))))
+     ;; Open depending on the setting
+     (cond
+       [(equal? file-tree-open-to-side 'left) (helix.static.move-window-far-left cx)]
+       [(equal? file-tree-open-to-side 'right) (helix.static.move-window-far-right cx)]
+       [else void])
+
+     ;;
+     (helix.static.move-window-far-left cx)
+
+     (helix.static.select_all cx)
+     (helix.static.delete_selection cx)
+
+     ;; Update the current file tree value
+     (set! *file-tree*
+           (tree (helix-find-workspace)
+                 (lambda (str)
+                   (helix.static.insert_string cx str)
+                   (helix.static.open_below cx)
+                   (helix.static.goto_line_start cx)))))))
 
 ;;@doc
 ;; Fold the directory that we're currently hovering over

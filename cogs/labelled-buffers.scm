@@ -1,6 +1,6 @@
-(require "../prelude.scm"
-         (for-syntax "../prelude.scm"))
-(require-helix)
+(require-builtin helix/core/typable as helix.)
+(require-builtin helix/core/static as helix.static.)
+(require-builtin helix/core/editor)
 
 ;; Book keeping for keymaps
 (require (only-in "keymaps.scm" *reverse-buffer-map-insert*))
@@ -54,7 +54,7 @@
 (define (make-new-labelled-buffer! cx
                                    #:label label
                                    #:language-type (language-type void)
-                                   #:side (side 'right))
+                                   #:side (side 'none))
 
   ;; Save our last state to return to it afterwards
   (define last-focused (currently-focused cx))
@@ -67,8 +67,11 @@
   ;; Label this buffer - it will now show up instead of `[scratch]`
   (set-scratch-buffer-name! cx (string-append "[" label "]"))
 
-  ; (when (eq? side 'left)
-  ;   (helix.static.swap_view_left cx))
+  (when (eq? side 'left)
+    (helix.static.move-window-far-left cx))
+
+  (when (eq? side 'right)
+    (helix.static.move-window-far-right cx))
 
   (when language-type
     (helix.set-language cx (list language-type) helix.PromptEvent::Validate))

@@ -1,7 +1,3 @@
-(require "steel/contracts/contract.scm"
-         (for-syntax "steel/contracts/contract.scm")
-         "steel/contracts/types.scm")
-
 (require "steel/result")
 
 (provide apply-options)
@@ -12,8 +8,8 @@
 ;; pairs of symbols.
 ;;
 ;; Raises an error if the operation failed
-(define/c (apply-options cx options-assoc-list)
-  (->c hx.context? (listof (listof symbol?)) void?)
+(define (apply-options cx options-assoc-list)
+  ; (->c hx.context? (listof (listof symbol?)) void?)
   (unwrap-ok (try-apply-options-impl cx options-assoc-list)))
 
 ;;@doc
@@ -22,8 +18,7 @@
 ;; pairs of symbols.
 ;;
 ;; Returns a result specifying whether the application succeeded
-(define/c (try-apply-options cx options-assoc-list)
-  (->c hx.context? (listof (listof symbol?)) void?)
+(define (try-apply-options cx options-assoc-list)
   (try-apply-options-impl cx options-assoc-list))
 
 (define (try-apply-options-impl cx options-assoc-list)
