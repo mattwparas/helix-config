@@ -1,11 +1,33 @@
-(require-builtin helix/core/typable as helix.)
-(require-builtin helix/core/static as helix.static.)
-(require-builtin helix/core/editor)
+;; (require-builtin helix/core/typable as helix.)
+;; (require-builtin helix/core/static as helix.static.)
+;; (require-builtin helix/core/editor)
 
+(require (prefix-in helix. "helix/commands.scm"))
+(require (prefix-in helix.static. "helix/static.scm"))
+(require "helix/editor.scm")
+
+(require "helix/misc.scm")
 (require "cogs/keymaps.scm")
 (require (only-in "cogs/scheme-indent.scm" scheme-indent))
 
 (require "steel/sorting/merge-sort.scm")
+
+;; This gets run first...
+; (require "/home/matt/Documents/helix-fork/helix/helix-term/src/commands/engine/controller.scm"
+; (for-syntax
+; "/home/matt/Documents/helix-fork/helix/helix-term/src/commands/engine/controller.scm"))
+
+;;;;;;;;;;;;;;;; TESTING SANDBOXING ;;;;;;;;;;;;;;;
+
+;; Load the plugin in a fresh environment
+; (register-plugin! "/home/matt/.config/helix/cogs/sandbox.scm"
+; "sandboxed-plugin"
+; (list "my-custom-vsplit"))
+
+; (provide my-custom-vsplit)
+; (define/plugin-func my-custom-vsplit)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (provide insert-lambda
          insert-string-at-selection
@@ -49,8 +71,8 @@
 
 (provide scheme-indent)
 
-(define (git-add cx)
-  (shell cx "git" "add" "%"))
+(define (git-add)
+  (shell "git" "add" "%"))
 
 (require "cogs/recentf.scm")
 (provide refresh-files
@@ -60,22 +82,22 @@
 
 (provide fmt-lambda)
 
-(define (fmt-lambda cx)
+(define (fmt-lambda)
 
-  (define current-selection (helix.static.current-selection-object cx))
+  (define current-selection (helix.static.current-selection-object))
 
-  (helix.static.select_all cx)
-  (helix.static.regex-selection cx "lambda\n")
-  (helix.static.replace-selection-with cx "λ\n")
+  (helix.static.select_all)
+  (helix.static.regex-selection "lambda\n")
+  (helix.static.replace-selection-with "λ\n")
 
-  (helix.static.select_all cx)
-  (helix.static.regex-selection cx "lambda ")
-  (helix.static.replace-selection-with cx "λ ")
+  (helix.static.select_all)
+  (helix.static.regex-selection "lambda ")
+  (helix.static.replace-selection-with "λ ")
 
-  (helix.static.merge_selections cx)
+  (helix.static.merge_selections)
 
-  (helix.static.move_visual_line_down cx)
-  (helix.static.move_visual_line_up cx))
+  (helix.static.move_visual_line_down)
+  (helix.static.move_visual_line_up))
 
 (require-builtin steel/random as rand::)
 
@@ -87,18 +109,18 @@
 (define (select-random lst)
   (let ([index (rand::rng->gen-range rng 0 (length lst))]) (list-ref lst index)))
 
-(define (randomly-pick-theme cx options)
+(define (randomly-pick-theme options)
   ;; Randomly select the theme from the possible themes list
-  (helix.theme cx (list (select-random options)) helix.PromptEvent::Validate))
+  (helix.theme (list (select-random options))))
 
 (provide change-theme-on-mode-change-hook)
 
-(define (change-theme-on-mode-change-hook cx _event)
-  (randomly-pick-theme cx (cx->themes cx)))
+(define (change-theme-on-mode-change-hook _event)
+  (randomly-pick-theme (cx->themes)))
 
 (provide move-window-left)
-(define (move-window-left cx)
-  (helix.static.move-window-far-left cx))
+(define (move-window-left)
+  (helix.static.move-window-far-left))
 
 ; (provide dummy)
 ; (define (dummy cx)
@@ -211,9 +233,8 @@
 ;                         "required_size"
 ;                         (Component::required-size-func component))))
 
-(define (test-component cx)
+(define (test-component)
   (push-component!
-   cx
    (new-component! "steel-dynamic-component" (list) (lambda (area frame context) void) (hash))))
 
 ; (provide run-prompt)
@@ -234,14 +255,14 @@
 ;                     (string-append "You just entered: " result ". Is that right?: (y/n)")
 ;                     (lambda (cx result) (create-file-tree cx))))))
 
-(define (helix-prompt! cx prompt-str thunk)
-  (push-component! cx (Prompt::new prompt-str thunk)))
+(define (helix-prompt! prompt-str thunk)
+  (push-component! (prompt prompt-str thunk)))
 
 ;; TODO: Move this to its own component API - components are pretty compelling to have, but
 ;; require just a tad bit more integration than standard commands
 (provide helix-picker!)
-(define (helix-picker! cx . pick-list)
-  (push-component! cx (Picker::new pick-list)))
+(define (helix-picker! . pick-list)
+  (push-component! (picker pick-list)))
 
 ;; I think options might still come through as void?
 (define (unwrap-or obj alt)
@@ -266,25 +287,24 @@
 
 ;;@doc
 ;; Specialized shell - also be able to override the existing definition, if possible.
-(define (shell cx . args)
+(define (shell . args)
   ;; Replace the % with the current file
-  (define expanded (map (lambda (x) (if (equal? x "%") (current-path cx) x)) args))
-  (helix.run-shell-command cx expanded helix.PromptEvent::Validate))
+  (define expanded (map (lambda (x) (if (equal? x "%") (current-path) x)) args))
+  (helix.run-shell-command expanded))
 
 ;;@doc
 ;; Get the path of the currently focused file
-(define (current-focus cx)
-  (insert-string-at-selection cx (to-string (current-path cx))))
+(define (current-focus)
+  (insert-string-at-selection (to-string (current-path))))
 
 ;; Only get the doc if it exists - also use real options instead of false here cause it kinda sucks
 (define (editor-get-doc-if-exists editor doc-id)
   (if (editor-doc-exists? editor doc-id) (editor->get-document editor doc-id) #f))
 
-(define (current-path cx)
-  (let* ([editor (cx-editor! cx)]
-         [focus (editor-focus editor)]
-         [focus-doc-id (editor->doc-id editor focus)]
-         [document (editor-get-doc-if-exists editor focus-doc-id)])
+(define (current-path)
+  (let* ([focus (editor-focus)]
+         [focus-doc-id (editor->doc-id focus)]
+         [document (editor-get-doc-if-exists focus-doc-id)])
 
     (if document (Document-path document) #f)))
 
@@ -292,25 +312,25 @@
 (define *last-focus* 'uninitialized)
 
 ;; Mark the last focused document, so that we can return to it
-(define (mark-last-focused! cx)
-  (let* ([editor (cx-editor! cx)] [focus (editor-focus editor)])
+(define (mark-last-focused!)
+  (let* ([focus (editor-focus)])
     (set! *last-focus* focus)
     focus))
 
-(define (currently-focused cx)
-  (~> cx (cx-editor!) (editor-focus)))
+(define (currently-focused)
+  (editor-focus))
 
 ;; (hash? string? )
 ; (define *temporary-buffer-map* (hash))
 ; (set! *reverse-buffer-map* (hash))
 
 ;; Grab whatever we're currently focused on
-(define (get-current-focus cx)
-  (~> cx (cx-editor!) (editor-focus)))
+(define (get-current-focus)
+  (~> (editor-focus)))
 
 ;; Get the current document id
-(define (get-current-doc-id cx)
-  (let* ([editor (cx-editor! cx)] [focus (editor-focus editor)]) (editor->doc-id editor focus)))
+(define (get-current-doc-id)
+  (let* ([focus (editor-focus)]) (editor->doc-id focus)))
 
 ;; Create a named repl, that we can reference statefully
 ; (struct SteelRepl (doc-id))
@@ -358,15 +378,15 @@
 
 ;;@doc
 ;; Insert a lambda
-(define (insert-lambda cx)
-  (helix.static.insert_char cx #\λ)
-  (helix.static.insert_mode cx))
+(define (insert-lambda)
+  (helix.static.insert_char #\λ)
+  (helix.static.insert_mode))
 
 ;;@doc
 ;; Insert the string at the selection and go back into insert mode
-(define (insert-string-at-selection cx str)
-  (helix.static.insert_string cx str)
-  (helix.static.insert_mode cx))
+(define (insert-string-at-selection str)
+  (helix.static.insert_string str)
+  (helix.static.insert_mode))
 
 ;;@doc
 ;; Registers a minor mode with the registered modifer and key map
@@ -414,30 +434,30 @@
 
 ;;@doc
 ;; Highlight to the matching paren
-(define (highlight-to-matching-paren cx)
-  (helix.static.select_mode cx)
-  (helix.static.match_brackets cx))
+(define (highlight-to-matching-paren)
+  (helix.static.select_mode)
+  (helix.static.match_brackets))
 
 ;;@doc
 ;; Run the s expression
-(define (run-expr cx)
-  (define current-selection (helix.static.current_selection cx))
+(define (run-expr)
+  (define current-selection (helix.static.current_selection))
   (when (or (equal? "(" current-selection) (equal? ")" current-selection))
-    (highlight-to-matching-paren cx)
-    (helix.static.run-in-engine! cx (helix.static.current-highlighted-text! cx))
-    (helix.static.normal_mode cx)))
+    (highlight-to-matching-paren)
+    (helix.static.run-in-engine! (helix.static.current-highlighted-text!))
+    (helix.static.normal_mode)))
 
-(define (run-highlight cx)
-  (helix.static.run-in-engine! cx (helix.static.current-highlighted-text! cx)))
+(define (run-highlight)
+  (helix.static.run-in-engine! (helix.static.current-highlighted-text!)))
 
 ;;@doc
 ;; Delete the s-expression matching this bracket
 ;; If the current selection is not on a bracket, this is a no-op
-(define (delete-sexpr cx)
-  (define current-selection (helix.static.current_selection cx))
+(define (delete-sexpr)
+  (define current-selection (helix.static.current_selection))
   (when (or (equal? "(" current-selection) (equal? ")" current-selection))
-    (highlight-to-matching-paren cx)
-    (helix.static.delete_selection cx)))
+    (highlight-to-matching-paren)
+    (helix.static.delete_selection)))
 
 ; (minor-mode! "+" ("l" => lam)
 ;                  ("q" => (set-theme-dracula lam)))
@@ -453,31 +473,30 @@
 
 ; (make-minor-mode! "+" (hash "l" ":lam"))
 
-(define (git-status cx)
-  (helix.run-shell-command cx '("git" "status") helix.PromptEvent::Validate))
+(define (git-status)
+  (helix.run-shell-command "git" "status"))
 
 ; (minor-mode! "G" ("s" => git-status))
 ; (minor-mode! "C-r" ("f" => recentf-open-files))
 
 ;;@doc
 ;; Reload the helix.scm file
-(define (reload-helix-scm cx)
-  (helix.static.run-in-engine! cx
-                               (string-append "(require \"" (helix.static.get-helix-scm-path) "\")")))
+(define (reload-helix-scm)
+  (helix.static.run-in-engine! (string-append "(require \"" (helix.static.get-helix-scm-path) "\")")))
 
 ;;@doc
 ;; Open the helix.scm file
-(define (open-helix-scm cx)
-  (helix.open cx (list (helix.static.get-helix-scm-path)) helix.PromptEvent::Validate))
+(define (open-helix-scm)
+  (helix.open (helix.static.get-helix-scm-path)))
 
 ;;@doc
 ;; Opens the init.scm file
-(define (open-init-scm cx)
-  (helix.open cx (list (helix.static.get-init-scm-path)) helix.PromptEvent::Validate))
+(define (open-init-scm)
+  (helix.open (helix.static.get-init-scm-path)))
 
 ;;@doc run git status
-(define (new-function cx)
-  (git-status cx))
+(define (new-function)
+  (git-status))
 
 ;;@doc
 ;; Collect memory usage of engine runtime?
@@ -485,10 +504,10 @@
   (error "TODO"))
 
 (provide create-commented-code-block)
-(define (create-commented-code-block cx)
-  (helix.static.insert_string cx "/// ```scheme\n/// \n/// ```")
-  (helix.static.move_line_up cx)
-  (helix.static.insert_mode cx))
+(define (create-commented-code-block)
+  (helix.static.insert_string "/// ```scheme\n/// \n/// ```")
+  (helix.static.move_line_up)
+  (helix.static.insert_mode))
 
 ;;;; Embedded Terminal ;;;;;
 
@@ -511,46 +530,44 @@
  (define (reset-terminal-refresh-delay!)
    (set! *terminal-refresh-delay* *DEFAULT-REFRESH-DELAY*))
  (provide initialize-pty-process)
- (define (initialize-pty-process cx)
+ (define (initialize-pty-process)
    (set! *pty-process* (create-native-pty-system!)))
  (provide kill-terminal)
- (define (kill-terminal cx)
+ (define (kill-terminal)
    (kill-pty-process! *pty-process*))
  (define *go-signal* #t)
  (provide interrupt-terminal)
- (define (interrupt-terminal cx)
+ (define (interrupt-terminal)
    (set! *go-signal* #f)
-   (enqueue-thread-local-callback cx (lambda (cx) (set! *go-signal* #true))))
+   (enqueue-thread-local-callback (lambda () (set! *go-signal* #true))))
  (provide terminal-loop)
- (define (terminal-loop cx)
+ (define (terminal-loop)
    (when *go-signal*
      (begin
 
        (let ([line-future (async-try-read-line *pty-process*)])
-         (helix-await-callback cx
-                               line-future
-                               (lambda (cx line)
+         (helix-await-callback line-future
+                               (lambda (line)
                                  (async-write-from-terminal-loop cx line)
 
                                  (terminal-loop cx))))))))
 
 ;; Goes until there isn't any output to read, writing each line
-(skip-compile (define (read-until-no-more-lines cx)
+(skip-compile (define (read-until-no-more-lines)
                 (error! "TODO"))
               ; (let ([output (pty-process-try-read-line *pty-process*)])
               ;   (when output
               ;     (helix.static.insert_string cx output)
               ;     (read-until-no-more-lines cx))))
               (define fail-check 0)
-              (define (write-line-to-terminal cx line)
-                (temporarily-switch-focus cx
-                                          (lambda (cx)
+              (define (write-line-to-terminal line)
+                (temporarily-switch-focus (lambda ()
                                             ;; Open up the repl, write the output
-                                            (open-labelled-buffer cx "steel-repl")
-                                            (helix.static.insert_string cx line))))
-              (define (write-char-to-terminal cx char)
+                                            (open-labelled-buffer "steel-repl")
+                                            (helix.static.insert_string line))))
+              (define (write-char-to-terminal char)
                 (cond
-                  [(equal? char #\newline) (helix.static.insert_string cx "\n")]
+                  [(equal? char #\newline) (helix.static.insert_string "\n")]
                   [(equal? char #\return)
                    void
                    ; (temporarily-switch-focus cx
@@ -561,7 +578,7 @@
                    ;                             (helix.static.insert_newline cx)
                    ;                             (helix.static.delete_selection cx)))
                    ]
-                  [else (helix.static.insert_char cx char)])))
+                  [else (helix.static.insert_char char)])))
 
 ;; TODO:
 ;; Create a highlighter stream of spans to apply syntax highlighting
@@ -573,33 +590,32 @@
  (define *ansi-parser* (make-ansi-tokenizer))
  ;; This is a bit silly, but we'll have to model cursor movement.
  (define *cursor-position* 1)
- (define (helix-clear-line cx)
+ (define (helix-clear-line)
 
-   (helix.static.extend_to_line_bounds cx)
-   (helix.static.delete_selection cx))
+   (helix.static.extend_to_line_bounds)
+   (helix.static.delete_selection))
  (define escape-code-map
    ;; EraseToEndOfLine - helix.static.kill_to_line_end
    (list (lambda (cx)
            (when (equal? 1 *cursor-position*)
-             (helix-clear-line cx)))
+             (helix-clear-line)))
          ;; EraseToStartOfLine
          helix.static.kill_to_line_start
          ;; EraseLine
-         (lambda (cx)
-           (helix.static.extend_to_line_bounds cx)
-           (helix.static.delete_selection cx))
+         (lambda ()
+           (helix.static.extend_to_line_bounds)
+           (helix.static.delete_selection))
          ;; Cursor Position escape sequence
-         (lambda (cx) (helix.static.insert_string cx "CURSOR POSITION ESCAPE SEQUENCE"))))
- (define (async-write-from-terminal-loop cx line)
+         (lambda () (helix.static.insert_string "CURSOR POSITION ESCAPE SEQUENCE"))))
+ (define (async-write-from-terminal-loop line)
 
    (unless (hash-try-get *temporary-buffer-map* "steel-repl")
-     (open-repl cx))
+     (open-repl))
 
    (temporarily-switch-focus
-    cx
-    (lambda (cx)
+    (lambda ()
       ;; Open up the repl, write the output
-      (open-labelled-buffer cx "steel-repl")
+      (open-labelled-buffer "steel-repl")
 
       (transduce (tokenize-line *ansi-parser* line)
                  (into-for-each (lambda (line)
@@ -610,30 +626,29 @@
                                     ; (write-line-to-terminal cx line)
                                     [line (helix.static.insert_string cx line)]
                                     [else void])))))))
- (define (write-from-terminal-loop cx)
+ (define (write-from-terminal-loop)
 
    (unless (hash-try-get *temporary-buffer-map* "steel-repl")
-     (open-repl cx))
+     (open-repl))
 
-   (temporarily-switch-focus cx
-                             (lambda (cx)
+   (temporarily-switch-focus (lambda ()
                                ;; Open up the repl, write the output
                                (let ([output (async-try-read-line *pty-process*)])
                                  (if output
                                      (begin
-                                       (open-labelled-buffer cx "steel-repl")
-                                       (helix.static.insert_string cx output)
-                                       (read-until-no-more-lines cx))
+                                       (open-labelled-buffer "steel-repl")
+                                       (helix.static.insert_string output)
+                                       (read-until-no-more-lines))
                                      (mark-failed!))))))
  ;; Every time we send a command, we can just unpark the delay
  (provide send-ls)
- (define (send-ls cx)
+ (define (send-ls)
    (reset-terminal-refresh-delay!)
    (reset-fail-check!)
    (pty-process-send-command *pty-process* "ls -l\r"))
  ; (require "steel/transducers/transducers.scm")
  (provide send-command)
- (define (send-command cx . args)
+ (define (send-command . args)
 
    (define carriage-return-ammended-string
      (list-transduce (tadd-between " ") rcons (append args '("\r"))))

@@ -19,24 +19,25 @@
 ;;@doc
 ;; Set the keybinding map to the specified map
 (define (*keybinding-map-set!* map)
-  (set-box! helix.keymaps.*buffer-or-extension-keybindings* map))
+  (set-strong-box! helix.keymaps.*buffer-or-extension-keybindings* map))
 
 ;;@doc
 ;; Insert a key value pair representing a binding to the keybinding map
 (define (*keybinding-map-insert* key value)
-  (set-box! helix.keymaps.*buffer-or-extension-keybindings*
-            (hash-insert (unbox helix.keymaps.*buffer-or-extension-keybindings*) key value)))
+  (set-strong-box!
+   helix.keymaps.*buffer-or-extension-keybindings*
+   (hash-insert (unbox-strong helix.keymaps.*buffer-or-extension-keybindings*) key value)))
 
 ;;@doc
 ;; Returns the buffer or extension keybinding map
 (define (*get-buffer-or-extension-keybindings*)
-  (unbox helix.keymaps.*buffer-or-extension-keybindings*))
+  (unbox-strong helix.keymaps.*buffer-or-extension-keybindings*))
 
 ;;@doc
 ;; Insert a value into the reverse buffer map
 (define (*reverse-buffer-map-insert* key value)
-  (set-box! helix.keymaps.*reverse-buffer-map*
-            (hash-insert (unbox helix.keymaps.*reverse-buffer-map*) key value)))
+  (set-strong-box! helix.keymaps.*reverse-buffer-map*
+                   (hash-insert (unbox-strong helix.keymaps.*reverse-buffer-map*) key value)))
 
 ;; Marshall values in and out of keybindings, referencing the associated values
 ;; within steel

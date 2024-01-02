@@ -1,6 +1,12 @@
-(require-builtin helix/core/typable as helix.)
-(require-builtin helix/core/static as helix.static.)
-(require-builtin helix/core/editor)
+;; Dropping the builtin, in lieu of something that uses the global context?
+(require (prefix-in helix. "helix/commands.scm"))
+(require (prefix-in helix.static. "helix/static.scm"))
+(require "helix/misc.scm")
+
+; (require-builtin helix/core/static as helix.static.)
+; (require-builtin helix/core/editor)
+
+(require "helix/editor.scm")
 
 (require "steel/sorting/merge-sort.scm")
 
@@ -26,8 +32,8 @@
                   fetch-doc-id))
 
 ;; TODO: This should be moved to a shared module somewhere, once the component API is cleaned up
-(define (helix-prompt! cx prompt-str thunk)
-  (push-component! cx (Prompt::new prompt-str thunk)))
+(define (helix-prompt! prompt-str thunk)
+  (push-component! (prompt prompt-str thunk)))
 
 ;; TODO: Prefix function names to keep them separate
 ;; File Tree keybindings
@@ -149,54 +155,53 @@
 
 ;;@doc
 ;; Open the currently selected line
-(define (open-file-from-picker cx)
-  (when (currently-in-labelled-buffer? cx FILE-TREE)
-    (define file-to-open (list-ref *file-tree* (helix.static.get-current-line-number cx)))
-    (helix.open cx (list file-to-open) helix.PromptEvent::Validate)))
+(define (open-file-from-picker)
+  (when (currently-in-labelled-buffer? FILE-TREE)
+    (define file-to-open (list-ref *file-tree* (helix.static.get-current-line-number)))
+    (helix.open file-to-open)))
 
 ;; Initialize all roots to be flat so that we don't blow things up, recursion only goes in to things
 ;; that are expanded
-(define (create-file-tree cx)
+(define (create-file-tree)
 
   ;; The doc id, or #false if it is not in the map
   (define doc-id (maybe-fetch-doc-id FILE-TREE))
 
   (unless doc-id
-    (make-new-labelled-buffer! cx #:label FILE-TREE #:side file-tree-open-to-side))
+    (make-new-labelled-buffer! #:label FILE-TREE #:side file-tree-open-to-side))
 
-  (unless (~> cx (cx-editor!) (editor-doc-exists? (fetch-doc-id FILE-TREE)))
-    (make-new-labelled-buffer! cx #:label FILE-TREE #:side file-tree-open-to-side))
+  (unless (editor-doc-exists? (fetch-doc-id FILE-TREE))
+    (make-new-labelled-buffer! #:label FILE-TREE #:side file-tree-open-to-side))
 
   (temporarily-switch-focus
-   cx
-   (lambda (cx)
-     (open-labelled-buffer cx FILE-TREE)
+   (lambda ()
+     (open-labelled-buffer FILE-TREE)
 
      ;; Open depending on the setting
      (cond
-       [(equal? file-tree-open-to-side 'left) (helix.static.move-window-far-left cx)]
-       [(equal? file-tree-open-to-side 'right) (helix.static.move-window-far-right cx)]
+       [(equal? file-tree-open-to-side 'left) (helix.static.move-window-far-left)]
+       [(equal? file-tree-open-to-side 'right) (helix.static.move-window-far-right)]
        [else void])
 
      ;;
-     (helix.static.move-window-far-left cx)
+     (helix.static.move-window-far-left)
 
-     (helix.static.select_all cx)
-     (helix.static.delete_selection cx)
+     (helix.static.select_all)
+     (helix.static.delete_selection)
 
      ;; Update the current file tree value
      (set! *file-tree*
            (tree (helix-find-workspace)
                  (lambda (str)
-                   (helix.static.insert_string cx str)
-                   (helix.static.open_below cx)
-                   (helix.static.goto_line_start cx)))))))
+                   (helix.static.insert_string str)
+                   (helix.static.open_below)
+                   (helix.static.goto_line_start)))))))
 
 ;;@doc
 ;; Fold the directory that we're currently hovering over
-(define (fold-directory cx)
-  (when (currently-in-labelled-buffer? cx FILE-TREE)
-    (define directory-to-fold (list-ref *file-tree* (helix.static.get-current-line-number cx)))
+(define (fold-directory)
+  (when (currently-in-labelled-buffer? FILE-TREE)
+    (define directory-to-fold (list-ref *file-tree* (helix.static.get-current-line-number)))
     (when (is-dir? directory-to-fold)
       (begin
         ;; If its already folded, unfold it
@@ -204,13 +209,13 @@
             (unfold! directory-to-fold)
             (fold! directory-to-fold))
 
-        (update-file-tree cx)))))
+        (update-file-tree)))))
 
 ;;@doc
 ;; Create a file under wherever we are
-(define (create-file cx)
-  (when (currently-in-labelled-buffer? cx FILE-TREE)
-    (define currently-selected (list-ref *file-tree* (helix.static.get-current-line-number cx)))
+(define (create-file)
+  (when (currently-in-labelled-buffer? FILE-TREE)
+    (define currently-selected (list-ref *file-tree* (helix.static.get-current-line-number)))
     (define prompt
       (if (is-dir? currently-selected)
           (string-append "New file: " currently-selected "/")
@@ -218,87 +223,83 @@
                          (trim-end-matches currently-selected (file-name currently-selected)))))
 
     (helix-prompt!
-     cx
      prompt
-     (lambda (cx result)
+     (lambda (result)
        (define file-name (string-append (trim-start-matches prompt "New file: ") result))
-       (temporarily-switch-focus cx
-                                 (lambda (cx)
-                                   (helix.vsplit-new cx '() helix.PromptEvent::Validate)
-                                   (helix.open cx (list file-name) helix.PromptEvent::Validate)
-                                   (helix.write cx (list file-name) helix.PromptEvent::Validate)
-                                   (helix.quit cx '() helix.PromptEvent::Validate)))
+       (temporarily-switch-focus (lambda ()
+                                   (helix.vsplit-new)
+                                   (helix.open file-name)
+                                   (helix.write file-name)
+                                   (helix.quit)))
 
        ;; TODO:
        ;; This is happening before the write is finished, so its not working. We will have to manually insert
        ;; the new file into the right spot in the tree, which would require rewriting this to have a proper sorted
        ;; tree representation in memory, which we don't yet have. For now, we can just do this I guess
-       (enqueue-thread-local-callback cx refresh-file-tree)))))
+       (enqueue-thread-local-callback refresh-file-tree)))))
 
-(define (update-file-tree cx)
+(define (update-file-tree)
 
-  (define current-selection (helix.static.current-selection-object cx))
-  (define last-mode (~> cx (cx-editor!) (editor-mode)))
+  (define current-selection (helix.static.current-selection-object))
+  (define last-mode (editor-mode))
 
-  (helix.static.select_all cx)
-  (helix.static.delete_selection cx)
+  (helix.static.select_all)
+  (helix.static.delete_selection)
 
   ;; Update the current file tree value
   (set! *file-tree*
         (tree (helix-find-workspace)
               (lambda (str)
-                (helix.static.insert_string cx str)
-                (helix.static.open_below cx)
-                (helix.static.goto_line_start cx))))
+                (helix.static.insert_string str)
+                (helix.static.open_below)
+                (helix.static.goto_line_start))))
 
   ;; Set it BACK to where we were previously!
-  (helix.static.set-current-selection-object! cx current-selection)
+  (helix.static.set-current-selection-object! current-selection)
 
-  (editor-set-mode! (cx-editor! cx) last-mode))
+  (editor-set-mode! last-mode))
 
-(define (refresh-file-tree cx)
-  (temporarily-switch-focus cx
-                            (lambda (cx)
-                              (open-labelled-buffer cx FILE-TREE)
-                              (update-file-tree cx))))
+(define (refresh-file-tree)
+  (temporarily-switch-focus (lambda ()
+                              (open-labelled-buffer FILE-TREE)
+                              (update-file-tree))))
 
 ;;@doc
 ;; Create a new directory
-(define (create-directory cx)
-  (when (currently-in-labelled-buffer? cx FILE-TREE)
-    (define currently-selected (list-ref *file-tree* (helix.static.get-current-line-number cx)))
+(define (create-directory)
+  (when (currently-in-labelled-buffer? FILE-TREE)
+    (define currently-selected (list-ref *file-tree* (helix.static.get-current-line-number)))
     (define prompt
       (if (is-dir? currently-selected)
           (string-append "New directory: " currently-selected "/")
           (string-append "New directory: "
                          (trim-end-matches currently-selected (file-name currently-selected)))))
 
-    (helix-prompt! cx
-                   prompt
-                   (lambda (cx result)
+    (helix-prompt! prompt
+                   (lambda (result)
                      (define directory-name
                        (string-append (trim-start-matches prompt "New directory: ") result))
                      (hx.create-directory directory-name)
-                     (enqueue-thread-local-callback cx refresh-file-tree)))))
+                     (enqueue-thread-local-callback refresh-file-tree)))))
 
 ;;@doc
 ;; Fold all of the directories
-(define (fold-all cx)
-  (when (currently-in-labelled-buffer? cx FILE-TREE)
+(define (fold-all)
+  (when (currently-in-labelled-buffer? FILE-TREE)
 
     (set! *directories*
           (transduce *directories* (mapping (lambda (x) (list (list-ref x 0) #t))) (into-hashmap)))
 
-    (helix.static.goto_file_start cx)
+    (helix.static.goto_file_start)
 
-    (refresh-file-tree cx)))
+    (refresh-file-tree)))
 
 ;;@doc
 ;; Unfold all of the currently open directories one level.
-(define (unfold-all-one-level cx)
-  (when (currently-in-labelled-buffer? cx FILE-TREE)
+(define (unfold-all-one-level)
+  (when (currently-in-labelled-buffer? FILE-TREE)
 
     (set! *directories*
           (transduce *directories* (mapping (lambda (x) (list (list-ref x 0) #f))) (into-hashmap)))
 
-    (refresh-file-tree cx)))
+    (refresh-file-tree)))

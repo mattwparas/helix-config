@@ -1,6 +1,9 @@
-(require-builtin helix/core/typable as helix.)
-(require-builtin helix/core/static as helix.static.)
-(require-builtin helix/core/editor)
+; (require-builtin helix/core/typable as helix.)
+; (require-builtin helix/core/static as helix.static.)
+; (require-builtin helix/core/editor)
+
+(require "helix/editor.scm")
+(require "helix/misc.scm")
 
 (provide refresh-files
          flush-recent-files
@@ -15,8 +18,8 @@
 (define ENABLED #f)
 
 ;; Only get the doc if it exists - also use real options instead of false here cause it kinda sucks
-(define (editor-get-doc-if-exists editor doc-id)
-  (if (editor-doc-exists? editor doc-id) (editor->get-document editor doc-id) #f))
+(define (editor-get-doc-if-exists doc-id)
+  (if (editor-doc-exists? doc-id) (editor->get-document doc-id) #f))
 
 (define (read-recent-files)
   (unless (path-exists? ".helix")
@@ -46,13 +49,11 @@
 
   (reverse (remove-duplicates-via-hash lst '() (hashset))))
 
-(define (refresh-files cx)
-  (let* ([editor (cx-editor! cx)]
-         [document-ids (editor-all-documents editor)]
+(define (refresh-files)
+  (let* ([document-ids (editor-all-documents)]
          [currently-opened-files (filter string?
                                          (map (lambda (doc-id)
-                                                (let ([document (editor-get-doc-if-exists editor
-                                                                                          doc-id)])
+                                                (let ([document (editor-get-doc-if-exists doc-id)])
                                                   (Document-path document)))
                                               document-ids))])
 
@@ -70,16 +71,16 @@
              (write-line! output-file line)))
          *recent-files*)))
 
-(define (helix-picker! cx pick-list)
-  (push-component! cx (Picker::new pick-list)))
+(define (helix-picker! pick-list)
+  (push-component! (picker pick-list)))
 
-(define (recentf-open-files cx)
-  (helix-picker! cx *recent-files*))
+(define (recentf-open-files)
+  (helix-picker! *recent-files*))
 
 ;; Runs every 2 minutes, and snapshots the visited files
-(define (recentf-snapshot cx)
+(define (recentf-snapshot)
 
-  (refresh-files cx)
+  (refresh-files)
   (flush-recent-files)
 
-  (enqueue-thread-local-callback-with-delay cx (* 1000 60 2) recentf-snapshot))
+  (enqueue-thread-local-callback-with-delay (* 1000 60 2) recentf-snapshot))

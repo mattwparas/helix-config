@@ -1,16 +1,15 @@
-(require-builtin helix/core/typable as helix.)
-(require-builtin helix/core/static as helix.static.)
-(require-builtin helix/core/editor)
+; (require-builtin helix/core/typable as helix.)
+; (require-builtin helix/core/static as helix.static.)
+; (require-builtin helix/core/editor)
+
+(require (prefix-in helix.static. "helix/static.scm"))
+
+(require "helix/editor.scm")
+(require "helix/misc.scm")
 
 (provide lisp-words
          add-lisp-word!
          scheme-indent)
-
-(define (lisp-words)
-  LISP-WORDS)
-
-(define (add-lisp-word! word)
-  (set! LISP-WORDS (hashset-insert LISP-WORDS word)))
 
 (define LISP-WORDS
   (hashset "define-syntax"
@@ -54,7 +53,14 @@
            "if"
            "syntax-rules"
            "when"
-           "unless"))
+           "unless"
+           "defmacro"))
+
+(define (lisp-words)
+  LISP-WORDS)
+
+(define (add-lisp-word! word)
+  (set! LISP-WORDS (hashset-insert LISP-WORDS word)))
 
 ; (define-syntax skip-compile
 ;   (syntax-rules ()
@@ -76,7 +82,7 @@
       (begin
         (set-CharIterator-offset! char-iterator (+ (CharIterator-offset char-iterator) 1))
         (set-CharIterator-index! char-iterator (+ (CharIterator-index char-iterator) 1))
-        (log::info! (to-string return-value))
+        ; (log::info! (to-string return-value))
         return-value)
       return-value))
 
@@ -101,8 +107,8 @@
 (define (walk-backwards line depth _index-complement index)
   (define char (text.slice-char-ref line _index-complement))
 
-  (log::info!
-   (to-string "Calling walk-backwards with char" (text.slice->string line) char _index-complement))
+  ; (log::info!
+  ;  (to-string "Calling walk-backwards with char" (text.slice->string line) char _index-complement))
 
   (cond
     [(close-paren? char) (walk-backwards line (+ depth 1) (- _index-complement 1) (+ index 1))]
@@ -115,8 +121,8 @@
                ;; TODO: Check if this var is used
                [end 'uninitialized])
 
-           (log::info! (to-string "Offset is" offset))
-           (log::info! (to-string "index is" index))
+           ; (log::info! (to-string "Offset is" offset))
+           ; (log::info! (to-string "index is" index))
 
            ;; Walk until we've found whitespace, and then crunch the whitespace until the start of the next symbol
            ;; if there is _no_ symbol after that, we should just default to the default behavior
@@ -128,8 +134,8 @@
                 (begin
                   ;; This is the end of our range
                   (let ([last index])
-                    (log::info! (to-string "Inner crunching index: " index))
-                    (log::info! (text.slice->string (text.slice->slice line offset (+ offset index))))
+                    ; (log::info! (to-string "Inner crunching index: " index))
+                    ; (log::info! (text.slice->string (text.slice->slice line offset (+ offset index))))
 
                     (cond
 
@@ -138,23 +144,22 @@
                       ;;                     ^ We want to line up to this
                       ;;
                       ;; To do so, just create an indent that is the width of the offset.
-                      [(open-paren? (text.slice-char-ref line offset))
-                       (log::info! "Found an open paren")
-                       (string-repeat " " offset)]
+                      ; (log::info! "Found an open paren")
+                      [(open-paren? (text.slice-char-ref line offset)) (string-repeat " " offset)]
                       [(hashset-contains?
                         LISP-WORDS
                         ;; TODO: Figure out these strange off by one errors...
                         (~> line (text.slice->slice offset (+ offset index -1)) (text.slice->string)))
 
-                       (log::info! "Found a Lisp-Word!")
+                       ; (log::info! "Found a Lisp-Word!")
 
                        (string-repeat " " (+ 1 offset))]
                       [else
                        =>
 
                        (let ([last (CharIterator-take-while-whitespace char-iter-from-paren index)])
-                         (log::info! (to-string "Length: " (text.slice-len-chars line)))
-                         (log::info! (to-string "Last + offset" (+ last offset)))
+                         ; (log::info! (to-string "Length: " (text.slice-len-chars line)))
+                         ; (log::info! (to-string "Last + offset" (+ last offset)))
 
                          ;; If we have something like (list RET)
                          ;; We want the result to look like:
@@ -192,14 +197,14 @@
   ;; Current line that we're iterating over
   (define line (text.slice->line text-up-to-cursor cursor))
 
-  (log::info! (to-string "Calling indent loop at line: " (text.slice->string line)))
+  ; (log::info! (to-string "Calling indent loop at line: " (text.slice->string line)))
 
   (if (text.slice-trim-and-starts-with? line ";")
       (if (equal? cursor 0)
           ;; We're at the top
           (begin
 
-            (log::info! "Cursor at the top, returning empty indent")
+            ; (log::info! "Cursor at the top, returning empty indent")
 
             "")
           ;; Go forward a line
@@ -212,9 +217,8 @@
           ;; We found a string, meaning we have our indent. Return that directly
           [(string? result) result]
           ;; We're at the top, just return an empty string
-          [(equal? cursor 0)
-           (log::info! "Cursor at the top, returning empty indent")
-           ""]
+          ; (log::info! "Cursor at the top, returning empty indent")
+          [(equal? cursor 0) ""]
 
           [(int? result) (indent-loop text-up-to-cursor (- cursor 1) result)]
           [else
@@ -229,23 +233,22 @@
 
 ; )
 
-(define (editor-get-doc-if-exists editor doc-id)
-  (if (editor-doc-exists? editor doc-id) (editor->get-document editor doc-id) #f))
+(define (editor-get-doc-if-exists doc-id)
+  (if (editor-doc-exists? doc-id) (editor->get-document doc-id) #f))
 
-(define (get-document-as-slice cx)
-  (let* ([editor (cx-editor! cx)]
-         [focus (editor-focus editor)]
-         [focus-doc-id (editor->doc-id editor focus)]
-         [document (editor-get-doc-if-exists editor focus-doc-id)])
+(define (get-document-as-slice)
+  (let* ([focus (editor-focus)]
+         [focus-doc-id (editor->doc-id focus)]
+         [document (editor-get-doc-if-exists focus-doc-id)])
     (text.document->slice document)))
 
 ;;@doc
 ;; Override the scheme indents with a custom indentation system
-(define (scheme-indent cx)
+(define (scheme-indent)
   ;; This is our rope
-  (define rope (get-document-as-slice cx))
-  (define current-line (helix.static.get-current-line-number cx))
-  (define pos (hx.cx->pos cx))
+  (define rope (get-document-as-slice))
+  (define current-line (helix.static.get-current-line-number))
+  (define pos (hx.cx->pos))
 
   ;; This will call the function in the right spot!
-  (hx.custom-insert-newline cx (scheme-indent-impl rope current-line pos)))
+  (hx.custom-insert-newline (scheme-indent-impl rope current-line pos)))

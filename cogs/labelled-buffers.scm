@@ -1,9 +1,10 @@
-(require-builtin helix/core/typable as helix.)
-(require-builtin helix/core/static as helix.static.)
-(require-builtin helix/core/editor)
+(require "helix/editor.scm")
 
 ;; Book keeping for keymaps
 (require (only-in "keymaps.scm" *reverse-buffer-map-insert*))
+
+(require (prefix-in helix. "helix/commands.scm"))
+(require (prefix-in helix.static. "helix/static.scm"))
 
 (provide make-new-labelled-buffer!
          temporarily-switch-focus
@@ -19,22 +20,22 @@
 (define *last-focus* 'uninitialized)
 
 ;; Mark the last focused document, so that we can return to it
-(define (mark-last-focused! cx)
-  (let* ([editor (cx-editor! cx)] [focus (editor-focus editor)])
+(define (mark-last-focused!)
+  (let* ([focus (editor-focus)])
     (set! *last-focus* focus)
     focus))
 
 ;; TODO: These appear to be the same function
-(define (currently-focused cx)
-  (~> cx (cx-editor!) (editor-focus)))
+(define (currently-focused)
+  (editor-focus))
 
 ;; Grab whatever we're currently focused on
-(define (get-current-focus cx)
-  (~> cx (cx-editor!) (editor-focus)))
+(define (get-current-focus)
+  (editor-focus))
 
 ;; Get the current document id
-(define (get-current-doc-id cx)
-  (let* ([editor (cx-editor! cx)] [focus (editor-focus editor)]) (editor->doc-id editor focus)))
+(define (get-current-doc-id)
+  (let* ([focus (editor-focus)]) (editor->doc-id focus)))
 
 ;;@doc
 ;; Attempts to find the doc id associated with the given key, returns #false if
@@ -51,57 +52,54 @@
 ;;@doc
 ;; Creates a new labelled buffer that can be access by the key `label`.
 ;; Optionally sets the language type if provided
-(define (make-new-labelled-buffer! cx
-                                   #:label label
+(define (make-new-labelled-buffer! #:label label
                                    #:language-type (language-type void)
                                    #:side (side 'none))
 
   ;; Save our last state to return to it afterwards
-  (define last-focused (currently-focused cx))
-  (define last-mode (~> cx (cx-editor!) (editor-mode)))
+  (define last-focused (currently-focused))
+  (define last-mode (editor-mode))
 
   ;; Open up the new labelled buffer in a vertical split, set the language accordingly
   ;; if it has been passed in
-  (helix.vsplit-new cx '() helix.PromptEvent::Validate)
+  (helix.vsplit-new)
 
   ;; Label this buffer - it will now show up instead of `[scratch]`
-  (set-scratch-buffer-name! cx (string-append "[" label "]"))
+  (set-scratch-buffer-name! (string-append "[" label "]"))
 
   (when (eq? side 'left)
-    (helix.static.move-window-far-left cx))
+    (helix.static.move-window-far-left))
 
   (when (eq? side 'right)
-    (helix.static.move-window-far-right cx))
+    (helix.static.move-window-far-right))
 
   (when language-type
-    (helix.set-language cx (list language-type) helix.PromptEvent::Validate))
+    (helix.set-language language-type))
 
   ;; Add the document id to our internal mapping.
-  (set! *temporary-buffer-map* (hash-insert *temporary-buffer-map* label (get-current-doc-id cx)))
+  (set! *temporary-buffer-map* (hash-insert *temporary-buffer-map* label (get-current-doc-id)))
 
-  (*reverse-buffer-map-insert* (doc-id->usize (get-current-doc-id cx)) label)
+  (*reverse-buffer-map-insert* (doc-id->usize (get-current-doc-id)) label)
 
   ;; Go back to where we were before
-  (editor-set-focus! (cx-editor! cx) last-focused)
-  (editor-set-mode! (cx-editor! cx) last-mode))
+  (editor-set-focus! last-focused)
+  (editor-set-mode! last-mode))
 
 ;; Switch the focus for the duration of the thunk, and return to where we were previously
-(define (temporarily-switch-focus cx thunk)
-  (define last-focused (mark-last-focused! cx))
-  (define last-mode (~> cx (cx-editor!) (editor-mode)))
-  (thunk cx)
-  (editor-set-focus! (cx-editor! cx) last-focused)
-  (editor-set-mode! (cx-editor! cx) last-mode))
+(define (temporarily-switch-focus thunk)
+  (define last-focused (mark-last-focused!))
+  (define last-mode (editor-mode))
+  (thunk)
+  (editor-set-focus! last-focused)
+  (editor-set-mode! last-mode))
 
-(define (open-or-switch-focus cx document-id)
-  (define maybe-view-id? (editor-doc-in-view? (cx-editor! cx) document-id))
-  (if maybe-view-id?
-      (editor-set-focus! (cx-editor! cx) maybe-view-id?)
-      (editor-switch! (cx-editor! cx) document-id)))
+(define (open-or-switch-focus document-id)
+  (define maybe-view-id? (editor-doc-in-view? document-id))
+  (if maybe-view-id? (editor-set-focus! maybe-view-id?) (editor-switch! document-id)))
 
-(define (open-labelled-buffer cx label)
-  (open-or-switch-focus cx (hash-ref *temporary-buffer-map* label)))
+(define (open-labelled-buffer label)
+  (open-or-switch-focus (hash-ref *temporary-buffer-map* label)))
 
-(define (currently-in-labelled-buffer? cx label)
+(define (currently-in-labelled-buffer? label)
   (define requested-label (hash-try-get *temporary-buffer-map* label))
-  (equal? (doc-id->usize requested-label) (doc-id->usize (get-current-doc-id cx))))
+  (equal? (doc-id->usize requested-label) (doc-id->usize (get-current-doc-id))))

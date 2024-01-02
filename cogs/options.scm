@@ -1,6 +1,7 @@
 (require "steel/result")
 
 (provide apply-options)
+(require (prefix-in helix. "helix/commands.scm"))
 
 ;;@doc
 ;; Applies the options in the `options-assoc-list` to the
@@ -8,9 +9,9 @@
 ;; pairs of symbols.
 ;;
 ;; Raises an error if the operation failed
-(define (apply-options cx options-assoc-list)
+(define (apply-options options-assoc-list)
   ; (->c hx.context? (listof (listof symbol?)) void?)
-  (unwrap-ok (try-apply-options-impl cx options-assoc-list)))
+  (try-apply-options-impl options-assoc-list))
 
 ;;@doc
 ;; Tries to apply the options in the `options-assoc-list` to the
@@ -18,10 +19,11 @@
 ;; pairs of symbols.
 ;;
 ;; Returns a result specifying whether the application succeeded
-(define (try-apply-options cx options-assoc-list)
-  (try-apply-options-impl cx options-assoc-list))
+(define (try-apply-options options-assoc-list)
+  (try-apply-options-impl options-assoc-list))
 
-(define (try-apply-options-impl cx options-assoc-list)
-  (helix.set-options cx
-                     (~>> options-assoc-list (flatten) (map symbol->string))
-                     helix.PromptEvent::Validate))
+(define (foo)
+  (helix.vsplit-new))
+
+(define (try-apply-options-impl options-assoc-list)
+  (apply helix.set-options (~>> options-assoc-list (flatten) (map symbol->string))))

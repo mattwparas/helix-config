@@ -1,13 +1,12 @@
 (require-builtin steel/random as rand::)
-(require-builtin helix/core/static as helix.static.)
-(require-builtin helix/core/typable as helix.)
 
 (require "cogs/keymaps.scm")
 (require (only-in "cogs/options.scm" apply-options))
-
 (require (only-in "cogs/file-tree.scm" FILE-TREE-KEYBINDINGS FILE-TREE))
-
 (require (only-in "cogs/recentf.scm" recentf-open-files get-recent-files))
+
+(require (prefix-in helix. "helix/commands.scm"))
+(require (prefix-in helix.static "helix/static.scm"))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -21,7 +20,7 @@
 
 (define (randomly-pick-theme options)
   ;; Randomly select the theme from the possible themes list
-  (helix.theme *helix.cx* (list (select-random options)) helix.PromptEvent::Validate))
+  (helix.theme (select-random options)))
 
 (randomly-pick-theme possible-themes)
 
@@ -29,7 +28,7 @@
 
 ;; Enable the recentf snapshot, will watch every 2 minutes for active files,
 ;; and flush those down to disk
-(recentf-snapshot *helix.cx*)
+(recentf-snapshot)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;; Themes ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -201,7 +200,7 @@
 
 (define *config-map* '((file-picker.hidden false) (cursorline true) (soft-wrap.enable true)))
 
-(apply-options *helix.cx* *config-map*)
+(apply-options *config-map*)
 
 (randomly-pick-theme possible-themes)
 
