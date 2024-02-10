@@ -3,10 +3,13 @@
 (require "cogs/keymaps.scm")
 (require (only-in "cogs/options.scm" apply-options))
 (require (only-in "cogs/file-tree.scm" FILE-TREE-KEYBINDINGS FILE-TREE))
-(require (only-in "cogs/recentf.scm" recentf-open-files get-recent-files))
+(require (only-in "cogs/recentf.scm" recentf-open-files get-recent-files recentf-snapshot))
 
 (require (prefix-in helix. "helix/commands.scm"))
-(require (prefix-in helix.static "helix/static.scm"))
+(require (prefix-in helix.static. "helix/static.scm"))
+
+;;
+; (require (prefix-in config. "helix/configuration.scm"))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

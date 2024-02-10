@@ -1,7 +1,5 @@
 theme = "ayu_mirage"
 
-[editor.statusline]
-center = ["custom"]
 
 # create a new minor mode bound to `+`
 [keys.normal."+"]
