@@ -1,15 +1,13 @@
 (require-builtin steel/random as rand::)
 
 (require "cogs/keymaps.scm")
-(require (only-in "cogs/options.scm" apply-options))
 (require (only-in "cogs/file-tree.scm" FILE-TREE-KEYBINDINGS FILE-TREE))
 (require (only-in "cogs/recentf.scm" recentf-open-files get-recent-files recentf-snapshot))
 
 (require (prefix-in helix. "helix/commands.scm"))
 (require (prefix-in helix.static. "helix/static.scm"))
 
-;;
-; (require (prefix-in config. "helix/configuration.scm"))
+(require "helix/configuration.scm")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -32,140 +30,6 @@
 ;; Enable the recentf snapshot, will watch every 2 minutes for active files,
 ;; and flush those down to disk
 (recentf-snapshot)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;; Themes ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;  (require-builtin helix/core/themes as hx.themes.)
-;  (require-builtin helix/core/languages as hx.languages.)
-
-;  (define (theme.key #:fg (fg void)
-;                     #:bg (bg void)
-;                     #:underline (underline void)
-;                     #:modifiers (modifiers void))
-
-;    (transduce (hash "fg" fg "bg" bg "underline" underline "modifiers" modifiers)
-;               (filtering (lambda (pair) (not (void? (cadr pair)))))
-;               (into-hashmap)))
-
-;  (define bg_acme_bar (theme.key #:bg "acme_bar_bag"))
-
-;  (define acme_bar_bg "#aeeeee")
-;  (define acme_bar_inactive
-
-;                "#eaffff"
-;    )
-
-;  (define acme-theme
-;    (hash "comment"
-;          "green"
-;          "string"
-;          "red"
-;          "ui.text"
-;          "black"
-;          "ui.virtual"
-;          "indent"
-;          "diagnostic.error"
-;          (hash "bg" "red" "fg" "white" "modifiers" (list "bold"))
-;          "diagnostic.hint"
-;          (hash "fg" "gray" "modifiers" (list "bold"))
-;          "diagnostic.warning"
-;          (hash "bg" "orange" "fg" "black" "modifiers" (list "bold"))
-;          "diff.delta"
-;          (hash "fg" "acme_bar_bg")
-;          "diff.minus"
-;          (hash "fg" "red")
-;          "diff.plus"
-;          (hash "fg" "green")
-;          "palette"
-;          (hash "acme_bar_bg"
-;                "#aeeeee"
-;                "acme_bar_inactive"
-;                "#eaffff"
-;                "acme_bg"
-;                "#ffffea"
-;                "black"
-;                "#000000"
-;                "cursor"
-;                "#444444"
-;                "gray"
-;                "#777777"
-;                "green"
-;                "#065905"
-;                "indent"
-;                "#aaaaaa"
-;                "orange"
-;                "#f0ad4e"
-;                "red"
-;                "#a0342f"
-;                "selected"
-;                "#eeee9e"
-;                "white"
-;                "#ffffff")
-;          "ui.background"
-;          (hash "bg" "acme_bg")
-;          ; (hash "bg" "black")
-;          "ui.bufferline"
-;          (hash "bg" "acme_bar_bg" "fg" "black")
-;          "ui.bufferline.active"
-;          (hash "bg" "acme_bg" "fg" "black")
-;          "ui.cursor"
-;          (hash "bg" "cursor" "fg" "white")
-;          "ui.cursor.match"
-;          bg_acme_bar
-;          "ui.cursorline"
-;          bg_acme_bar
-;          "ui.debug"
-;          (hash "fg" "orange")
-;          "ui.help"
-;          (hash "bg" "acme_bg" "fg" "black")
-;          "ui.highlight.frameline"
-;          (hash "bg" "#da8581")
-;          "ui.linenr"
-;          (hash "bg" "acme_bg" "fg" "black")
-;          "ui.linenr.selected"
-;          (hash "bg" "acme_bg" "fg" "black")
-;          "ui.menu"
-;          (hash "bg" "acme_bg" "fg" "black")
-;          "ui.menu.selected"
-;          (hash "bg" "selected")
-;          "ui.popup"
-;          (hash "bg" "acme_bg" "fg" "black")
-;          "ui.selection"
-;          (hash "bg" "selected")
-;          "ui.statusline"
-;          (hash "bg" "acme_bar_bg" "fg" "black")
-;          "ui.statisline.inactive"
-;          (hash "bg" "acme_bar_inactive" "fg" "black")
-;          "ui.virtual.ruler"
-;          bg_acme_bar
-;          "ui.window"
-;          (hash "bg" "acme_bg")))
-
-;  (let ([result (hx.themes.register-theme! "custom-acme" (value->jsexpr-string acme-theme))])
-;    (when (Err? result)
-;      (error result)))
-
-; ;;;;;;;;;;;;;;;;;;;;;;;;; Language Configurations ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;  (define scheme-configuration
-;    (hash "language"
-;          (list (hash "auto-format"
-;                      #t
-;                      "name"
-;                      "scheme"
-;                      "grammar"
-;                      "scheme"
-;                      "formatter"
-;                      (hash "args" '("fmt" "-i") "command" "raco")
-;                      "file-types" '("scm")))))
-
-;  (let ([result (hx.languages.register-language-configuration!
-;                 (value->jsexpr-string scheme-configuration))])
-
-;    (when (Err? result)
-;      (error result)))
-
-;  (hx.languages.flush-configuration *helix.cx*)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;; Keybindings ;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -201,12 +65,11 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;; Options ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define *config-map* '((file-picker.hidden false) (cursorline true) (soft-wrap.enable true)))
-
-(apply-options *config-map*)
+(file-picker (fp-hidden #f))
+(cursorline #t)
+(soft-wrap (sw-enable #t))
 
 (randomly-pick-theme possible-themes)
 
 ;; Probably should be a symbol?
-
 ; (register-hook! 'post-insert-char 'prompt-on-char-press)

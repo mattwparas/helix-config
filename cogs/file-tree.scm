@@ -2,12 +2,7 @@
 (require (prefix-in helix. "helix/commands.scm"))
 (require (prefix-in helix.static. "helix/static.scm"))
 (require "helix/misc.scm")
-
-; (require-builtin helix/core/static as helix.static.)
-; (require-builtin helix/core/editor)
-
 (require "helix/editor.scm")
-
 (require "steel/sorting/merge-sort.scm")
 
 (provide fold-directory
