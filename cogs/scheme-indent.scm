@@ -1,7 +1,3 @@
-; (require-builtin helix/core/typable as helix.)
-; (require-builtin helix/core/static as helix.static.)
-; (require-builtin helix/core/editor)
-
 (require (prefix-in helix.static. "helix/static.scm"))
 
 (require "helix/editor.scm")
@@ -77,7 +73,7 @@
 ;; Mutable advance the iterator
 (define (CharIterator-next! char-iterator)
   (define return-value
-    (text.slice-char-ref (CharIterator-slice char-iterator) (CharIterator-offset char-iterator)))
+    (text.rope-char-ref (CharIterator-slice char-iterator) (CharIterator-offset char-iterator)))
   (if (char? return-value)
       (begin
         (set-CharIterator-offset! char-iterator (+ (CharIterator-offset char-iterator) 1))
@@ -105,7 +101,7 @@
 ;; Crunch the slice in reverse, keeping track of the depth, and the index (offset) that we're at. Since we're doing it
 ;; in reverse, the _index-complement is just to save us some funny business of math
 (define (walk-backwards line depth _index-complement index)
-  (define char (text.slice-char-ref line _index-complement))
+  (define char (text.rope-char-ref line _index-complement))
 
   ; (log::info!
   ;  (to-string "Calling walk-backwards with char" (text.slice->string line) char _index-complement))
@@ -145,11 +141,11 @@
                       ;;
                       ;; To do so, just create an indent that is the width of the offset.
                       ; (log::info! "Found an open paren")
-                      [(open-paren? (text.slice-char-ref line offset)) (string-repeat " " offset)]
+                      [(open-paren? (text.rope-char-ref line offset)) (string-repeat " " offset)]
                       [(hashset-contains?
                         LISP-WORDS
                         ;; TODO: Figure out these strange off by one errors...
-                        (~> line (text.slice->slice offset (+ offset index -1)) (text.slice->string)))
+                        (~> line (text.rope->slice offset (+ offset index -1)) (text.rope->string)))
 
                        ; (log::info! "Found a Lisp-Word!")
 
@@ -168,8 +164,8 @@
                          ;;
                          ;; So we special case the lack of an additional word after
                          ;; the first symbol
-                         (if (and (equal? (text.slice-len-chars line) (+ last offset 1))
-                                  (char-whitespace? (text.slice-char-ref line (+ last offset))))
+                         (if (and (equal? (text.rope-len-chars line) (+ last offset 1))
+                                  (char-whitespace? (text.rope-char-ref line (+ last offset))))
                              (string-repeat " " (+ offset 1))
                              (string-repeat " " (+ last offset))))])))]
 
@@ -195,11 +191,11 @@
 (define (indent-loop text-up-to-cursor cursor depth)
 
   ;; Current line that we're iterating over
-  (define line (text.slice->line text-up-to-cursor cursor))
+  (define line (text.rope->line text-up-to-cursor cursor))
 
   ; (log::info! (to-string "Calling indent loop at line: " (text.slice->string line)))
 
-  (if (text.slice-trim-and-starts-with? line ";")
+  (if (text.rope-starts-with? (text.rope-trim-start line) ";")
       (if (equal? cursor 0)
           ;; We're at the top
           (begin
@@ -211,7 +207,7 @@
           (indent-loop text-up-to-cursor (- cursor 1) depth))
 
       ;; TODO: slice-len-chars might need to be (- (text.slice-len-chars line) 1)
-      (let ([result (walk-backwards line depth (- (text.slice-len-chars line) 1) 0)])
+      (let ([result (walk-backwards line depth (- (text.rope-len-chars line) 1) 0)])
 
         (cond
           ;; We found a string, meaning we have our indent. Return that directly
@@ -227,8 +223,8 @@
 
 ; (provide scheme-indent)
 (define (scheme-indent-impl text line-before line-before-end-pos)
-  (define byte-pos (text.slice-char->byte text line-before-end-pos))
-  (define text-up-to-cursor (text.slice->byte-slice text 0 byte-pos))
+  (define byte-pos (text.rope-char->byte text line-before-end-pos))
+  (define text-up-to-cursor (text.rope->byte-slice text 0 byte-pos))
   (indent-loop text-up-to-cursor line-before 0))
 
 ; )
