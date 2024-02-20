@@ -7,12 +7,9 @@
          *get-buffer-or-extension-keybindings*
          *reverse-buffer-map-insert*
          merge-keybindings
-         helix-current-keymap
          set-global-buffer-or-extension-keymap
          add-global-keybinding
          deep-copy-global-keybindings)
-
-(define helix-current-keymap helix.keymaps.helix-current-keymap)
 
 ;;@doc
 ;; Set the keybinding map to the specified map
