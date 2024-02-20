@@ -1,8 +1,6 @@
 (require-builtin helix/core/keymaps as helix.keymaps.)
 
-; (require "steel/contracts/contract.scm"
-;          (for-syntax "steel/contracts/contract.scm")
-;          "steel/contracts/types.scm")
+(require "helix/configuration.scm")
 
 (provide *keybinding-map-set!*
          *keybinding-map-insert*
@@ -42,7 +40,6 @@
 ;; Marshall values in and out of keybindings, referencing the associated values
 ;; within steel
 (define (merge-keybindings keymap steel-key-map)
-  ; (->c helix.keymaps.keymap? hash? void?)
   (helix.keymaps.helix-merge-keybindings
    keymap
    (~> steel-key-map (value->jsexpr-string) (helix.keymaps.helix-string->keymap))))
@@ -50,17 +47,30 @@
 ;;@doc
 ;; Check that the types on this map check out, otherwise we don't need to consistently do these checks
 (define (set-global-buffer-or-extension-keymap map)
-  ; (->c (hashof string? helix.keymaps.keymap?) void?)
   (*keybinding-map-set!* map))
 
 ;;@doc
 ;; Add keybinding to the global default
 (define (add-global-keybinding map)
+
+  ;; Copy the global ones
+  (define global-bindings (get-keybindings))
   (helix.keymaps.helix-merge-keybindings
-   helix.keymaps.*global-keybinding-map*
-   (~> map (value->jsexpr-string) (helix.keymaps.helix-string->keymap))))
+   global-bindings
+   (~> map (value->jsexpr-string) (helix.keymaps.helix-string->keymap)))
+
+  (keybindings global-bindings)
+
+  ;; Merge keybindings
+  ; (helix.keymaps.helix-merge-keybindings
+  ;  helix.keymaps.*global-keybinding-map*
+  ;  (~> map (value->jsexpr-string) (helix.keymaps.helix-string->keymap)))
+  )
 
 ;;@doc
 ;; Deep copy the global keymap
 (define (deep-copy-global-keybindings)
-  (helix.keymaps.helix-deep-copy-keymap helix.keymaps.*global-keybinding-map*))
+
+  ;; Copy the global keybindings directly
+  ;; off of the configuration object
+  (get-keybindings))
