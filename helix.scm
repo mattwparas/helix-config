@@ -29,21 +29,24 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(define load-buffer helix.static.load-buffer!)
+
 (provide insert-lambda
          insert-string-at-selection
          highlight-to-matching-paren
          delete-sexpr
-         run-expr
-         run-highlight
+         ; run-expr
+         ; run-highlight
          make-minor-mode!
          git-status
-         reload-helix-scm
+         ; reload-helix-scm
          open-helix-scm
          open-init-scm
          new-function
          shell
          current-focus
-         git-add)
+         git-add
+         load-buffer)
 
 ;;;;;;;;;;;;;;; File Tree ;;;;;;;;;;;;;;;;;
 
@@ -439,18 +442,6 @@
   (helix.static.match_brackets))
 
 ;;@doc
-;; Run the s expression
-(define (run-expr)
-  (define current-selection (helix.static.current_selection))
-  (when (or (equal? "(" current-selection) (equal? ")" current-selection))
-    (highlight-to-matching-paren)
-    (helix.static.run-in-engine! (helix.static.current-highlighted-text!))
-    (helix.static.normal_mode)))
-
-(define (run-highlight)
-  (helix.static.run-in-engine! (helix.static.current-highlighted-text!)))
-
-;;@doc
 ;; Delete the s-expression matching this bracket
 ;; If the current selection is not on a bracket, this is a no-op
 (define (delete-sexpr)
@@ -479,10 +470,10 @@
 ; (minor-mode! "G" ("s" => git-status))
 ; (minor-mode! "C-r" ("f" => recentf-open-files))
 
-;;@doc
-;; Reload the helix.scm file
-(define (reload-helix-scm)
-  (helix.static.run-in-engine! (string-append "(require \"" (helix.static.get-helix-scm-path) "\")")))
+; ;;@doc
+; ;; Reload the helix.scm file
+; (define (reload-helix-scm)
+; (helix.static.run-in-engine! (string-append "(require \"" (helix.static.get-helix-scm-path) "\")")))
 
 ;;@doc
 ;; Open the helix.scm file
