@@ -9,6 +9,8 @@
 
 (require "helix/configuration.scm")
 
+(require (only-in "test.scm" show-welcome-message))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define rng (rand::thread-rng!))
@@ -70,6 +72,8 @@
 (soft-wrap (sw-enable #t))
 
 (randomly-pick-theme possible-themes)
+
+(show-welcome-message)
 
 ;; Probably should be a symbol?
 ; (register-hook! 'post-insert-char 'prompt-on-char-press)
