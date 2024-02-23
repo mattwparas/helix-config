@@ -110,7 +110,7 @@
 
 (define (path->symbol path)
   (let ([extension (path->extension path)])
-    (if extension
+    (if (not (void? extension))
         (begin
           (define lookup (hash-try-get *extension-map* (path->extension path)))
           (if lookup lookup " "))

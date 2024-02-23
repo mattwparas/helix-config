@@ -53,7 +53,7 @@
 ;; Creates a new labelled buffer that can be access by the key `label`.
 ;; Optionally sets the language type if provided
 (define (make-new-labelled-buffer! #:label label
-                                   #:language-type (language-type void)
+                                   #:language-type (language-type #f)
                                    #:side (side 'none))
 
   ;; Save our last state to return to it afterwards
