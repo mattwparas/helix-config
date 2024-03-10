@@ -9,14 +9,14 @@
 
 (require "helix/configuration.scm")
 
-(require (only-in "test.scm" show-welcome-message))
+;; (require (only-in "test.scm" show-welcome-message))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define rng (rand::thread-rng!))
 
 ;; Picking one from the possible themes is _fine_
-(define possible-themes '("tokyonight_storm" "catppuccin_macchiato" "kanagawa"))
+(define possible-themes '("tokyonight_storm" "catppuccin_macchiato" "solarized_dark"))
 
 (define (select-random lst)
   (let ([index (rand::rng->gen-range rng 0 (length lst))]) (list-ref lst index)))
@@ -73,7 +73,7 @@
 
 (randomly-pick-theme possible-themes)
 
-(show-welcome-message)
+;; (show-welcome-message)
 
 ;; Probably should be a symbol?
 ; (register-hook! 'post-insert-char 'prompt-on-char-press)
