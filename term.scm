@@ -3,8 +3,6 @@
 
 (require-builtin helix/components)
 
-(provide show-welcome-message)
-
 (#%require-dylib "libsteel_pty"
                  (only-in create-native-pty-system!
                           kill-pty-process!
@@ -39,11 +37,22 @@
 
 (require-builtin steel/time)
 
-(provide start-terminal
-         kill-terminal
-         terminal-loop
-         send-ls
-         term)
+(provide open-term
+         new-term
+         kill-active-terminal
+         switch-term
+         term-resize
+         (contract/out set-default-terminal-cols! (->/c int? void?))
+         (contract/out set-default-terminal-rows! (->/c int? void?)))
+
+(define *default-terminal-rows* 45)
+(define *default-terminal-cols* 80)
+
+(define (set-default-terminal-rows! rows)
+  (set! *default-terminal-rows* rows))
+
+(define (set-default-terminal-cols! cols)
+  (set! *default-terminal-cols* cols))
 
 (define default-style (~> (style) (style-bg Color/Black) (style-fg Color/White)))
 
@@ -164,56 +173,67 @@
 
                                                  #f)))))))
 
-; (define (pin-right overlay-width rect)
-;   (define left-shift (- (area-width rect) overlay-width))
-
-;   )
+(define *min-term-width* 4)
+(define *min-term-height* 2)
 
 (define (calculate-block-area state rect)
 
   ;; Max width
   ;; TODO: This should be dynamic based on the viewport size
   (define max-width (unbox (Terminal-viewport-width state)))
+
+  ;; Center the terminal, somehow
   (define left-shift (round (/ max-width 2)))
-  ; (define left-shift (- (area-width rect) max-width))
-  ; (define x (- (area-width rect) max-width 4))
 
   ;; Put this at 3/4 to the right side of the screen
   (define x (- (round (* 3/4 (area-width rect))) left-shift))
+  ; (define x (- (area-width rect) max-width *min-term-width*))
 
   ;; Halfway down
-  (define y (round (* 1/4 (area-height rect))))
+  (define y (round (* 0/4 (area-height rect))))
 
-  (define calculated-area (area x y (+ max-width 4) (+ (unbox (Terminal-viewport-height state)) 2)))
+  (define calculated-area
+    (area x
+          y
+          (+ max-width *min-term-width*)
+          (+ (unbox (Terminal-viewport-height state)) *min-term-height*)))
 
-  ;; If the rows will extend beyond the bottom of the screen,
-  ;; shrink the terminal to fit.
-  (if (> (+ y (area-height calculated-area)) (area-height rect))
+  ;; Check if we need to resize the boundaries
+  (define resize-height? (> (+ y (area-height calculated-area)) (area-height rect)))
+  (define resize-width? (> (+ x (area-width calculated-area)) (area-width rect)))
 
-      ;; Resize the block area to fit, recalculate
+  (cond
+    [(and resize-height? resize-width?)
 
-      (begin
-        (define shrink-by-height (- (+ y (area-height calculated-area)) (area-height rect)))
+     (define shrink-by-height (- (+ y (area-height calculated-area)) (area-height rect)))
+     (define shrink-by-width (- (+ x (area-width calculated-area)) (area-width rect)))
 
-        (log::info! (to-string (+ y (area-height calculated-area)) " " (area-height rect)))
-        ;; TODO: Add a term resize that accepts ints, not strings - it only takes strings
-        ;; since that is what is getting passed in via the commands
-        (term-resize (int->string (- (unbox (Terminal-viewport-height state)) shrink-by-height))
-                     (int->string (unbox (Terminal-viewport-width state))))
+     (term-resize (int->string (- (unbox (Terminal-viewport-height state)) shrink-by-height))
+                  (int->string (- (unbox (Terminal-viewport-width state)) shrink-by-width)))
 
-        ;; Grab the new area via this calculation
-        (calculate-block-area state rect))
+     ;; Grab the new area via this calculation
+     (calculate-block-area state rect)]
 
-      calculated-area
+    [resize-height?
+     (define shrink-by-height (- (+ y (area-height calculated-area)) (area-height rect)))
 
-      ;; Resize?
-      ; (error "Can't fit!")
-      )
+     (term-resize (int->string (- (unbox (Terminal-viewport-height state)) shrink-by-height))
+                  (int->string (unbox (Terminal-viewport-width state))))
 
-  ;; TODO: Have this be configurable. The location from which the terminal
-  ;; should start.
-  ; (area x y (+ max-width 4) (+ (#%unbox (Terminal-viewport-height state)) 2))
-  )
+     ;; Grab the new area via this calculation
+     (calculate-block-area state rect)]
+
+    [resize-width?
+
+     (define shrink-by-width (- (+ x (area-width calculated-area)) (area-width rect)))
+
+     (term-resize (int->string (unbox (Terminal-viewport-height state)))
+                  (int->string (- (unbox (Terminal-viewport-width state)) shrink-by-width)))
+
+     ;; Grab the new area via this calculation
+     (calculate-block-area state rect)]
+
+    [else calculated-area]))
 
 (define (terminal-render state rect frame)
   ;; If this is still alive, keep it around
@@ -336,7 +356,7 @@
     [cursor (show-term (list-ref (TerminalRegistry-terminals *terminal-registry*) cursor))]
     [else
      ;; 45 rows, 80 cols
-     (define new-term (make-terminal "/usr/bin/zsh" 45 80))
+     (define new-term (make-terminal "/usr/bin/zsh" *default-terminal-rows* *default-terminal-cols*))
 
      (set-TerminalRegistry-terminals! *terminal-registry* (list new-term))
      (set-TerminalRegistry-cursor! *terminal-registry* 0)
@@ -346,7 +366,7 @@
 ;; Cycle terminals?
 (define (new-term)
   ;; 45 rows, 80 cols
-  (define new-term (make-terminal "/usr/bin/zsh" 45 80))
+  (define new-term (make-terminal "/usr/bin/zsh" *default-terminal-rows* *default-terminal-cols*))
 
   (define cursor (TerminalRegistry-cursor *terminal-registry*))
 
