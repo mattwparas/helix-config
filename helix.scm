@@ -15,10 +15,10 @@
 (require "term.scm")
 
 (provide open-term
-         new-term
-         kill-active-terminal
-         switch-term
-         term-resize)
+          new-term
+          kill-active-terminal
+          switch-term
+          term-resize)
 
 ;; This gets run first...
 ; (require "/home/matt/Documents/helix-fork/helix/helix-term/src/commands/engine/controller.scm"

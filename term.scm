@@ -17,6 +17,7 @@
                           vte/cell->fg
                           vte/cell->bg
                           term/color-attribute
+                          term/color-attribute-set!
                           vte/cell-width
                           vte/cell-string
                           vte/reset-iterator!
@@ -25,17 +26,24 @@
                           vte/iter-y
                           vte/iter-cell-fg
                           vte/iter-cell-bg
+                          vte/iter-cell-fg-set-attr!
+                          vte/iter-cell-bg-set-attr!
+                          vte/empty-cell
                           vte/iter-cell-str
+                          vte/iter-cell-str-set-str!
                           vte/cursor-x
                           vte/cursor-y
                           vte/resize
                           pty-resize!
-                          raw-virtual-terminal))
+                          raw-virtual-terminal
+                          vte/scroll-up
+                          vte/scroll-down))
 
 (require "steel/result")
 (require "helix/misc.scm")
 
 (require-builtin steel/time)
+(require-builtin steel/ffi)
 
 (provide open-term
          new-term
@@ -56,26 +64,43 @@
 
 (define default-style (~> (style) (style-bg Color/Black) (style-fg Color/White)))
 
-;; Save Color around rather than allocate a new one each time
-(define (attribute->color attr base-color)
-  (cond
-    [(list? attr)
-     (set-color-rgb! base-color (list-ref attr 0) (list-ref attr 1) (list-ref attr 2))
+(define bg-attr (ffi-vector #f #f #f #f))
+(define fg-attr (ffi-vector #f #f #f #f))
 
-     base-color]
+;; Save Color around rather than allocate a new one each time
+(define (attribute->color attr bg/fg base-color)
+  (cond
+
+    ; [(list? attr)
+    ;  (set-color-rgb! base-color (list-ref attr 0) (list-ref attr 1) (list-ref attr 2))
+
+    ;  base-color]
+
     [(int? attr)
      (set-color-indexed! base-color attr)
      base-color]
+
+    ;; Updating succeeded, use the shared memory space
+    [attr
+     (set-color-rgb! base-color
+                     (ffi-vector-ref bg/fg 0)
+                     (ffi-vector-ref bg/fg 1)
+                     (ffi-vector-ref bg/fg 2))
+
+     base-color]
+
+    ; [(int? attr)
+    ;  (set-color-indexed! base-color attr)
+    ;  base-color]
     [else #f]))
 
 (define (cell-fg-bg->style base-style base-color-fg base-color-bg fg bg)
   (set-style-bg! base-style
-                 (or (attribute->color (term/color-attribute bg) base-color-bg) Color/Black))
+                 (or (attribute->color (term/color-attribute-set! bg bg-attr) bg-attr base-color-bg)
+                     Color/Black))
   (set-style-fg! base-style
-                 (or (attribute->color (term/color-attribute fg) base-color-fg) Color/White)))
-
-;; Spawn the background thread with the pty process
-;; communicate over the process?
+                 (or (attribute->color (term/color-attribute-set! fg fg-attr) fg-attr base-color-fg)
+                     Color/White)))
 
 (define (for-each func lst)
   (if (null? lst)
@@ -86,7 +111,17 @@
           (return! void))
         (for-each func (cdr lst)))))
 
-;; Embedded terminal widget
+;; Embedded terminal widget. This contains all of the UI fields
+;; necessary to render, as well as the actual virtual terminal emulator
+;; that we interact with. The implementation separates the vte and the
+;; pty into separate entities - the vte stores all of the state of the
+;; terminal, and the pty is the actual process that we're communicating
+;; with. We run an async loop to pull output from the pty and feed
+;; that into the vte. When rendering the terminal, we iterate over the
+;; cells of the vte, and translate that into the representation that
+;; Helix understands. In general, this struct is used mutably, however
+;; in order to more efficiently interact with certain fields, some are
+;; manually boxed while others are left as immutable.
 (struct Terminal
         (cursor viewport-width
                 viewport-height
@@ -97,7 +132,12 @@
                 style-cursor
                 color-cursor-fg
                 color-cursor-bg
-                kill-switch))
+                kill-switch
+                str-cell
+                cell-fg
+                cell-bg
+                area
+                dragged?))
 
 (define (make-terminal shell rows cols)
   (define *pty-process* (create-native-pty-system! shell))
@@ -118,6 +158,13 @@
                             (Color/rgb 0 0 0)
                             ;; More or less a one shot channel. This just says to kill the update
                             ;; loop that is running in the background.
+                            (box #f)
+                            (mutable-string)
+                            (vte/empty-cell)
+                            (vte/empty-cell)
+                            ;; Don't have an area yet!
+                            (box #f)
+                            ;; Are we currently dragging the terminal?
                             (box #f))])
 
     (terminal-loop terminal)
@@ -176,6 +223,14 @@
 (define *min-term-width* 4)
 (define *min-term-height* 2)
 
+(define x-term #f)
+(define y-term #f)
+
+(define global-max-height #f)
+(define global-max-width #f)
+
+;; We don't need to run this on _every_ frame. Just when
+;; something has actually changed.
 (define (calculate-block-area state rect)
 
   ;; Max width
@@ -185,12 +240,10 @@
   ;; Center the terminal, somehow
   (define left-shift (round (/ max-width 2)))
 
-  ;; Put this at 3/4 to the right side of the screen
-  (define x (- (round (* 3/4 (area-width rect))) left-shift))
-  ; (define x (- (area-width rect) max-width *min-term-width*))
+  (define x (if x-term (- x-term left-shift) (- (round (* 3/4 (area-width rect))) left-shift)))
 
   ;; Halfway down
-  (define y (round (* 0/4 (area-height rect))))
+  (define y (or y-term (round (* 0/4 (area-height rect)))))
 
   (define calculated-area
     (area x
@@ -202,14 +255,22 @@
   (define resize-height? (> (+ y (area-height calculated-area)) (area-height rect)))
   (define resize-width? (> (+ x (area-width calculated-area)) (area-width rect)))
 
+  (set! x-term (+ x left-shift))
+  (set! y-term y)
+
+  (set! global-max-height (area-height rect))
+  (set! global-max-width (area-width rect))
+
+  ;; TODO: Any time we call term-resize, we basically just need to make sure
+  ;; that the values are positive. Otherwise we're going to have a really bad time.
   (cond
     [(and resize-height? resize-width?)
 
      (define shrink-by-height (- (+ y (area-height calculated-area)) (area-height rect)))
      (define shrink-by-width (- (+ x (area-width calculated-area)) (area-width rect)))
 
-     (term-resize (int->string (- (unbox (Terminal-viewport-height state)) shrink-by-height))
-                  (int->string (- (unbox (Terminal-viewport-width state)) shrink-by-width)))
+     (term-resize-impl (- (unbox (Terminal-viewport-height state)) shrink-by-height)
+                       (- (unbox (Terminal-viewport-width state)) shrink-by-width))
 
      ;; Grab the new area via this calculation
      (calculate-block-area state rect)]
@@ -217,8 +278,8 @@
     [resize-height?
      (define shrink-by-height (- (+ y (area-height calculated-area)) (area-height rect)))
 
-     (term-resize (int->string (- (unbox (Terminal-viewport-height state)) shrink-by-height))
-                  (int->string (unbox (Terminal-viewport-width state))))
+     (term-resize-impl (- (unbox (Terminal-viewport-height state)) shrink-by-height)
+                       (unbox (Terminal-viewport-width state)))
 
      ;; Grab the new area via this calculation
      (calculate-block-area state rect)]
@@ -227,15 +288,26 @@
 
      (define shrink-by-width (- (+ x (area-width calculated-area)) (area-width rect)))
 
-     (term-resize (int->string (unbox (Terminal-viewport-height state)))
-                  (int->string (- (unbox (Terminal-viewport-width state)) shrink-by-width)))
+     (term-resize-impl (unbox (Terminal-viewport-height state))
+                       (- (unbox (Terminal-viewport-width state)) shrink-by-width))
 
      ;; Grab the new area via this calculation
      (calculate-block-area state rect)]
 
     [else calculated-area]))
 
+;; Renders the terminal. The renderer is implemented primarily as a cursor
+;; over the cells of the terminal, translated from the underlying
+;; representation in the wezterm library back into something that helix can
+;; understand. It isn't the most efficient code, since there has to be some
+;; translation between the associated representations, however care has been
+;; taken in order to reduce the overall amount of copying that occurs, as well
+;; as to reduce the total amount of allocations. Allocations are reused
+;; where relevant explicitly - the foreground and background cell styles
+;; are reused, as well as the string allocation for the individual cell
+;; that we are currently rendering.
 (define (terminal-render state rect frame)
+
   ;; If this is still alive, keep it around
   (unless (unbox (Terminal-kill-switch state))
 
@@ -249,34 +321,55 @@
     (define color-cursor-bg (Terminal-color-cursor-bg state))
     (define *vte* (Terminal-*vte* state))
     (define cursor (Terminal-cursor state))
+    (define cell-str (Terminal-str-cell state))
+    (define cell-fg (Terminal-cell-fg state))
+    (define cell-bg (Terminal-cell-bg state))
+
+    ;; Keep a record of the state of the area for the event handler.
+    (set-box! (Terminal-area state) block-area)
 
     ;; Clear out the target for the terminal
     (buffer/clear frame block-area)
     (block/render frame block-area (block))
 
-    ;; Start at 0
-    (vte/reset-iterator! *vte*)
+    ;; TODO: Don't render while its being dragged around. We should probably
+    ;; rendering something like "<Rendering paused while window is being draged"
+    (unless (unbox (Terminal-dragged? state))
 
-    ;; Advancing the iterator
-    (while (vte/advance-iterator! *vte*)
-           (define cell-x (vte/iter-x *vte*))
-           (define cell-y (vte/iter-y *vte*))
-           (define fg-style (vte/iter-cell-fg *vte*))
-           (define bg-style (vte/iter-cell-bg *vte*))
-           (define str (vte/iter-cell-str *vte*))
-           ;; If there is something to render, lets do it
-           (when str
-             (cell-fg-bg->style style-cursor color-cursor-fg color-cursor-bg fg-style bg-style)
-             (frame-set-string! frame (+ x-offset cell-x) (+ y-offset cell-y) str style-cursor)))
+      ;; Start at 0
+      (vte/reset-iterator! *vte*)
+
+      ;; Advancing the iterator
+      (while (vte/advance-iterator! *vte*)
+             (define str (vte/iter-cell-str-set-str! *vte* cell-str))
+             (when str
+               (vte/iter-cell-fg-set-attr! *vte* cell-fg)
+               (vte/iter-cell-bg-set-attr! *vte* cell-bg)
+               (cell-fg-bg->style style-cursor color-cursor-fg color-cursor-bg cell-fg cell-bg)
+               (frame-set-string! frame
+                                  (+ x-offset (vte/iter-x *vte*))
+                                  (+ y-offset (vte/iter-y *vte*))
+                                  cell-str
+                                  style-cursor))))
 
     ;; Update the cursor accordingly
     (set-position-row! cursor (+ y-offset (vte/cursor-y *vte*)))
     (set-position-col! cursor (+ x-offset (vte/cursor-x *vte*) 1))))
 
-;; Don't handle any events
+;; Measure the diff between these two
+(define on-click-start (mutable-vector 0 0))
+(define on-click-end (mutable-vector 0 0))
+
+;; Event handler for the terminal.
+;; This primarily focuses on forwarding the key events
+;; and the mouse events down to the underlying terminal
+;; instance. Care is taken to avoid extra allocations
+;; in order to make this as smooth as possible.
 (define (terminal-event-handler state event)
   (define char (key-event-char event))
   (define *pty-process* (Terminal-*pty-process* state))
+  (define *vte* (Terminal-*vte* state))
+  (define now (instant/now))
 
   (cond
     ;; If the terminal is focused, we are going to
@@ -334,8 +427,90 @@
         (pty-process-send-command *pty-process* (string char))
         event-result/consume]
 
+       [(mouse-event? event)
+
+        (cond
+          [(mouse-event-within-area? event (unbox (Terminal-area state)))
+
+           (case (event-mouse-kind event)
+             ;; Mouse event down - any mouse button
+             [(0 1 2)
+
+              ;; Update the position to compare against
+              (vector-set! on-click-start 0 (event-mouse-col event))
+              (vector-set! on-click-start 1 (event-mouse-row event))
+
+              event-result/consume]
+
+             [(3 4 5)
+
+              (set-box! (Terminal-dragged? state) #f)
+
+              event-result/consume]
+
+             [(6 7 8)
+
+              (define delta-x (- (event-mouse-col event) (mut-vector-ref on-click-start 0)))
+              (define delta-y (- (event-mouse-row event) (mut-vector-ref on-click-start 1)))
+              (define left-min (round (/ (area-width (unbox (Terminal-area state))) 2)))
+
+              (vector-set! on-click-start 0 (event-mouse-col event))
+              (vector-set! on-click-start 1 (event-mouse-row event))
+
+              (set-box! (Terminal-dragged? state) #t)
+
+              (when x-term
+                (when (< (+ x-term delta-x left-min) global-max-width)
+                  (set! x-term (max (+ x-term delta-x) (round left-min)))))
+              (when y-term
+                (when (< (+ y-term delta-y (area-height (unbox (Terminal-area state))))
+                         global-max-height)
+                  (set! y-term (max (+ y-term delta-y) 0))))
+
+              event-result/consume]
+             ; [(3) (error "todo")]
+             ; [(4) (error "todo")]
+             ; [(5) (error "todo")]
+             ; [(6) (error "todo")]
+             ; [(7) (error "todo")]
+             ; [(8) (error "todo")]
+             ; [(9) (error "todo")]
+             ;; Scroll down
+             [(10)
+
+              (vte/scroll-down *vte*)
+
+              event-result/consume]
+             ;; Scroll up
+             ; (pty-process-send-command *pty-process* "\u001e")
+             ; event-result/consume
+             [(11)
+
+              (vte/scroll-up *vte*)
+
+              event-result/consume]
+             ; [(12) (error "todo")]
+             ; [(13) (error "todo")]
+             ; (error "todo")
+             [else event-result/ignore])]
+
+          [else
+
+           (set-box! (Terminal-focused? state) #f)
+
+           event-result/ignore])]
        [else event-result/ignore])]
 
+    [(mouse-event? event)
+     (cond
+       [(mouse-event-within-area? event (unbox (Terminal-area state)))
+        (case (event-mouse-kind event)
+          ;; Mouse event down - any mouse button
+          [(0 1 2)
+           (set-box! (Terminal-focused? state) #t)
+           event-result/consume]
+          [else event-result/ignore])]
+       [else event-result/ignore])]
     ;; Close the terminal popup if it is open
     [(unbox (Terminal-kill-switch state)) event-result/close]
 
@@ -347,6 +522,7 @@
 
 (define *terminal-registry* (TerminalRegistry '() #f))
 
+;;@doc
 ;; Opens a new terminal
 (define (open-term)
   (define cursor (TerminalRegistry-cursor *terminal-registry*))
@@ -363,7 +539,8 @@
 
      (show-term new-term)]))
 
-;; Cycle terminals?
+;;@doc
+;; Create a new terminal instance
 (define (new-term)
   ;; 45 rows, 80 cols
   (define new-term (make-terminal "/usr/bin/zsh" *default-terminal-rows* *default-terminal-cols*))
@@ -383,6 +560,8 @@
 
   (show-term new-term))
 
+;;@doc
+;; Swaps to the next active terminal, if there is one.
 (define (switch-term)
 
   (define cursor (TerminalRegistry-cursor *terminal-registry*))
@@ -396,24 +575,28 @@
     (if (= (length (TerminalRegistry-terminals *terminal-registry*)) (+ 1 cursor))
 
         (set-TerminalRegistry-cursor! *terminal-registry* 0)
-        (set-TerminalRegistry-cursor! (+ 1 cursor)))
+        (set-TerminalRegistry-cursor! *terminal-registry* (+ 1 cursor)))
 
     (show-term (list-ref (TerminalRegistry-terminals *terminal-registry*) (+ 1 cursor)))))
 
-(define (term-resize srows scols)
-
+(define (term-resize-impl rows cols)
   (define cursor (TerminalRegistry-cursor *terminal-registry*))
-  (define rows (string->int srows))
-  (define cols (string->int scols))
   (define terminal (list-ref (TerminalRegistry-terminals *terminal-registry*) cursor))
   (define *vte* (Terminal-*vte* terminal))
   (define *pty-process* (Terminal-*pty-process* terminal))
 
   (vte/resize *vte* rows cols)
+
   (pty-resize! *pty-process* rows cols)
 
   (set-box! (Terminal-viewport-width terminal) cols)
   (set-box! (Terminal-viewport-height terminal) rows))
+
+;;@doc
+;; Resizes the terminal window to have the given rows and cols
+;; `:term-resize <rows> <cols>`
+(define (term-resize srows scols)
+  (term-resize-impl (string->int srows) (string->int scols)))
 
 (define (remove-nth lst n)
   (let loop ([i 0] [lst lst])
@@ -421,6 +604,8 @@
       [(= i n) (rest lst)]
       [else (cons (first lst) (loop (add1 i) (rest lst)))])))
 
+;;@doc
+;; Kill the currently active terminal, if there is one.
 (define (kill-active-terminal)
   (define cursor (TerminalRegistry-cursor *terminal-registry*))
   ;; Stop the terminal before we remove it

@@ -1,6 +1,10 @@
-use abi_stable::std_types::{
-    RBoxError,
-    RResult::{self},
+use abi_stable::{
+    std_types::{
+        RBoxError,
+        RResult::{self},
+        RString,
+    },
+    RMut,
 };
 use config::{ColorAttribute, SrgbaTuple, TermConfig};
 use portable_pty::{Child, CommandBuilder, NativePtySystem, PtyPair, PtySize, PtySystem};
@@ -14,7 +18,10 @@ use std::{
 use steel::{
     declare_module,
     rvals::Custom,
-    steel_vm::ffi::{FFIModule, FFIValue, FfiFuture, FfiFutureExt, IntoFFIVal, RegisterFFIFn},
+    steel_vm::ffi::{
+        as_underlying_ffi_type, CustomRef, FFIArg, FFIModule, FFIValue, FfiFuture, FfiFutureExt,
+        IntoFFIVal, RegisterFFIFn, VectorRef,
+    },
 };
 use wezterm_term::{Cell, Line, Terminal};
 
@@ -193,6 +200,7 @@ fn create_module() -> FFIModule {
             ),
             screen_iterator: ScreenCellIterator { x: 0, y: 0 },
             last_cell: None,
+            scroll_up_modifier: 0,
         })
         // Raw virtual terminal!
         .register_fn("raw-virtual-terminal", || VirtualTerminal {
@@ -205,6 +213,7 @@ fn create_module() -> FFIModule {
             ),
             screen_iterator: ScreenCellIterator { x: 0, y: 0 },
             last_cell: None,
+            scroll_up_modifier: 0,
         })
         .register_fn("vte/advance-bytes", VirtualTerminal::advance_bytes)
         .register_fn("vte/resize", VirtualTerminal::resize)
@@ -228,6 +237,7 @@ fn create_module() -> FFIModule {
             TermColorAttribute(cell.cell.attrs().background())
         })
         // Get the color attribute, map it to the one that helix uses
+        // TODO: Re-use the memory - we should pass in an FFI Vector, and then just reuse it over and over.
         .register_fn(
             "term/color-attribute",
             |attribute: &TermColorAttribute| match attribute.0 {
@@ -249,13 +259,43 @@ fn create_module() -> FFIModule {
                 ColorAttribute::Default => false.into_ffi_val(),
             },
         )
+        .register_fn(
+            "term/color-attribute-set!",
+            |attribute: &TermColorAttribute, shared_vec: FFIArg| {
+                if let FFIArg::VectorRef(VectorRef { mut vec, .. }) = shared_vec {
+                    match attribute.0 {
+                        ColorAttribute::TrueColorWithPaletteFallback(SrgbaTuple(r, g, b, a), _) => {
+                            // Update in place.
+                            vec[0] = FFIValue::IntV(r as isize);
+                            vec[1] = FFIValue::IntV(g as isize);
+                            vec[2] = FFIValue::IntV(b as isize);
+                            vec[3] = FFIValue::IntV(a as isize);
+
+                            true.into_ffi_val()
+                        }
+                        ColorAttribute::TrueColorWithDefaultFallback(SrgbaTuple(r, g, b, a)) => {
+                            vec[0] = FFIValue::IntV(r as isize);
+                            vec[1] = FFIValue::IntV(g as isize);
+                            vec[2] = FFIValue::IntV(b as isize);
+                            vec[3] = FFIValue::IntV(a as isize);
+
+                            true.into_ffi_val()
+                        }
+                        ColorAttribute::PaletteIndex(index) => (index as usize).into_ffi_val(),
+                        ColorAttribute::Default => false.into_ffi_val(),
+                    }
+                } else {
+                    false.into_ffi_val()
+                }
+            },
+        )
         .register_fn("vte/cell-width", |cell: &TermCell| cell.cell.width())
         .register_fn("vte/cell-string", |cell: &TermCell| {
             cell.cell.str().to_string()
         })
         .register_fn("vte/reset-iterator!", |term: &mut VirtualTerminal| {
             term.screen_iterator.x = 0;
-            term.screen_iterator.y = 0;
+            term.screen_iterator.y = term.scroll_up_modifier;
             term.last_cell = None;
         })
         .register_fn("vte/advance-iterator!", |term: &mut VirtualTerminal| {
@@ -289,15 +329,20 @@ fn create_module() -> FFIModule {
 
             let size = term.terminal.get_size();
 
-            let (rows, cols) = (size.rows as i64, size.cols);
+            let (rows, cols) = (size.rows as i64 + term.scroll_up_modifier, size.cols);
 
             // If we still have something to snag,
             if term.screen_iterator.x < cols && term.screen_iterator.y < rows {
                 term.last_cell = term
                     .terminal
                     .screen_mut()
-                    .get_cell(term.screen_iterator.x, term.screen_iterator.y)
+                    .get_cell_scrollback(term.screen_iterator.x, term.screen_iterator.y as _)
                     .cloned();
+
+                // let line_idx = term.terminal.screen_mut().phys_row(row as i64);
+
+                // let line = term.terminal.screen_mut().lines.get_mut(line_idx)?;
+                // term.last_cell = line.cells_mut().get(term.screen_iterator.x);
 
                 term.screen_iterator.x += 1;
                 return true;
@@ -307,7 +352,7 @@ fn create_module() -> FFIModule {
                 term.last_cell = term
                     .terminal
                     .screen_mut()
-                    .get_cell(term.screen_iterator.x, term.screen_iterator.y)
+                    .get_cell_scrollback(term.screen_iterator.x, term.screen_iterator.y as _)
                     .cloned();
 
                 term.screen_iterator.x = 0;
@@ -322,8 +367,9 @@ fn create_module() -> FFIModule {
             term.screen_iterator.x
         })
         .register_fn("vte/iter-y", |term: &VirtualTerminal| {
-            term.screen_iterator.y as isize
+            (term.screen_iterator.y - term.scroll_up_modifier) as isize
         })
+        // TODO: Add function to mutate in place
         .register_fn("vte/iter-cell-fg", |term: &VirtualTerminal| {
             if let Some(cell) = &term.last_cell {
                 TermColorAttribute(cell.attrs().to_owned().foreground()).into_ffi_val()
@@ -331,6 +377,7 @@ fn create_module() -> FFIModule {
                 false.into_ffi_val()
             }
         })
+        // TODO: Add function to mutate in place
         .register_fn("vte/iter-cell-bg", |term: &VirtualTerminal| {
             if let Some(cell) = &term.last_cell {
                 TermColorAttribute(cell.attrs().to_owned().background()).into_ffi_val()
@@ -338,6 +385,53 @@ fn create_module() -> FFIModule {
                 false.into_ffi_val()
             }
         })
+        .register_fn("vte/empty-cell", || {
+            TermColorAttribute(ColorAttribute::default())
+        })
+        .register_fn(
+            "vte/iter-cell-bg-set-attr!",
+            |term: &VirtualTerminal, val: FFIArg| {
+                if let Some(cell) = &term.last_cell {
+                    if let FFIArg::CustomRef(CustomRef { mut custom, .. }) = val {
+                        if let Some(attr) =
+                            as_underlying_ffi_type::<TermColorAttribute>(custom.get_mut())
+                        {
+                            attr.0 = cell.attrs().to_owned().background();
+
+                            return true.into_ffi_val();
+                        } else {
+                            return false.into_ffi_val();
+                        }
+                    } else {
+                        return false.into_ffi_val();
+                    }
+                } else {
+                    false.into_ffi_val()
+                }
+            },
+        )
+        .register_fn(
+            "vte/iter-cell-fg-set-attr!",
+            |term: &VirtualTerminal, val: FFIArg| {
+                if let Some(cell) = &term.last_cell {
+                    if let FFIArg::CustomRef(CustomRef { mut custom, .. }) = val {
+                        if let Some(attr) =
+                            as_underlying_ffi_type::<TermColorAttribute>(custom.get_mut())
+                        {
+                            attr.0 = cell.attrs().to_owned().foreground();
+
+                            return true.into_ffi_val();
+                        } else {
+                            return false.into_ffi_val();
+                        }
+                    } else {
+                        return false.into_ffi_val();
+                    }
+                } else {
+                    false.into_ffi_val()
+                }
+            },
+        )
         .register_fn("vte/iter-cell-str", |term: &VirtualTerminal| {
             if let Some(cell) = &term.last_cell {
                 cell.str().to_string().into_ffi_val()
@@ -345,12 +439,25 @@ fn create_module() -> FFIModule {
                 false.into_ffi_val()
             }
         })
-        .register_fn("vte/scroll", |term: &mut VirtualTerminal| {
-            // term.terminal.screen().scroll_up(, , , , )
+        .register_fn(
+            "vte/iter-cell-str-set-str!",
+            |term: &VirtualTerminal, mut mut_str: RMut<'_, RString>| {
+                if let Some(cell) = &term.last_cell {
+                    mut_str.get_mut().clear();
+                    mut_str.get_mut().push_str(cell.str());
 
-            // term.terminal.screen_mut().scroll_up(, , , , )
-
-            todo!()
+                    RResult::ROk(FFIValue::Void)
+                } else {
+                    false.into_ffi_val()
+                }
+            },
+        )
+        .register_fn("vte/scroll-up", |term: &mut VirtualTerminal| {
+            term.scroll_up_modifier = (term.scroll_up_modifier - 1)
+                .max(0 - term.terminal.screen().scrollback_rows() as i64);
+        })
+        .register_fn("vte/scroll-down", |term: &mut VirtualTerminal| {
+            term.scroll_up_modifier = (term.scroll_up_modifier + 1).min(0);
         });
 
     module
@@ -477,6 +584,7 @@ fn create_native_pty_system(command: String) -> PtyProcess {
 struct VirtualTerminal {
     terminal: wezterm_term::Terminal,
     screen_iterator: ScreenCellIterator,
+    scroll_up_modifier: i64,
     last_cell: Option<Cell>,
 }
 
