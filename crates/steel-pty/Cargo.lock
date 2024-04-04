@@ -2891,8 +2891,10 @@ dependencies = [
 [[package]]
 name = "steel-core"
 version = "0.6.0"
+source = "git+https://github.com/mattwparas/steel.git#c5451eaf7fc8e4ba39eb0536b0ccc9b469c2e50b"
 dependencies = [
  "abi_stable",
+ "anyhow",
  "async-ffi",
  "bincode",
  "chrono",
@@ -2927,6 +2929,7 @@ dependencies = [
 [[package]]
 name = "steel-derive"
 version = "0.5.0"
+source = "git+https://github.com/mattwparas/steel.git#c5451eaf7fc8e4ba39eb0536b0ccc9b469c2e50b"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2936,6 +2939,7 @@ dependencies = [
 [[package]]
 name = "steel-gen"
 version = "0.2.0"
+source = "git+https://github.com/mattwparas/steel.git#c5451eaf7fc8e4ba39eb0536b0ccc9b469c2e50b"
 dependencies = [
  "codegen",
  "serde",
@@ -2945,6 +2949,7 @@ dependencies = [
 [[package]]
 name = "steel-parser"
 version = "0.6.0"
+source = "git+https://github.com/mattwparas/steel.git#c5451eaf7fc8e4ba39eb0536b0ccc9b469c2e50b"
 dependencies = [
  "fxhash",
  "lasso",

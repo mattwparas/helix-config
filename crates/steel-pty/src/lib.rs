@@ -52,7 +52,7 @@ impl std::io::Write for WriterWrapper {
 
 struct PtyProcess {
     cancellation_token_sender: Sender<()>,
-    command_sender: Sender<String>,
+    command_sender: Sender<u8>,
     async_receiver: Arc<Mutex<mpsc::UnboundedReceiver<String>>>,
     pty_system: PtyPair,
     child: Box<dyn Child + Send + Sync>,
@@ -82,8 +82,14 @@ impl PtyProcess {
         self.cancellation_token_sender.send(()).ok();
     }
 
-    pub fn send_command(&mut self, command: String) {
-        self.command_sender.send(command).unwrap();
+    pub fn send_command_char(&mut self, command: char) {
+        self.command_sender.send(command as u8).unwrap();
+    }
+
+    pub fn send_command(&mut self, command: &str) {
+        for byte in command.as_bytes() {
+            self.command_sender.send(*byte).unwrap();
+        }
     }
 
     // TODO: rows + cols should be u16,
@@ -172,24 +178,12 @@ fn create_module() -> FFIModule {
         .register_fn("create-native-pty-system!", create_native_pty_system)
         .register_fn("kill-pty-process!", PtyProcess::kill)
         .register_fn("pty-process-send-command", PtyProcess::send_command)
+        .register_fn(
+            "pty-process-send-command-char",
+            PtyProcess::send_command_char,
+        )
         .register_fn("async-try-read-line", PtyProcess::async_try_read_line)
         .register_fn("pty-resize!", PtyProcess::resize)
-        // .register_fn("action/backspace?", |action: &TermAction| {
-        //     matches!(&action.0, Action::Control(ControlCode::Backspace))
-        // })
-        // .register_fn("action/horizontal-tab?", |action: &TermAction| {
-        //     matches!(&action.0, Action::Control(ControlCode::HorizontalTab))
-        // })
-        // .register_fn("action/cursor-left?", |action: &TermAction| {
-        //     matches!(&action.0, Action::CSI(CSI::Cursor(csi::Cursor::Left(_))))
-        // })
-        // .register_fn("action/cursor-left-col", |action: &TermAction| {
-        //     if let Action::CSI(CSI::Cursor(csi::Cursor::Left(v))) = &action.0 {
-        //         (*v as isize).into_ffi_val()
-        //     } else {
-        //         false.into_ffi_val()
-        //     }
-        // })
         .register_fn("virtual-terminal", |pty: &mut PtyProcess| VirtualTerminal {
             terminal: Terminal::new(
                 wezterm_term::TerminalSize::default(),
@@ -216,6 +210,15 @@ fn create_module() -> FFIModule {
             scroll_up_modifier: 0,
         })
         .register_fn("vte/advance-bytes", VirtualTerminal::advance_bytes)
+        // Advancing with immediate action
+        .register_fn(
+            "vte/advance-bytes-char",
+            VirtualTerminal::advance_bytes_char,
+        )
+        .register_fn(
+            "vte/advance-bytes-with-carriage-return",
+            VirtualTerminal::advance_bytes_with_carriage_return,
+        )
         .register_fn("vte/resize", VirtualTerminal::resize)
         .register_fn("vte/lines", VirtualTerminal::lines)
         .register_fn("vte/line->string", TermLine::as_str)
@@ -389,6 +392,46 @@ fn create_module() -> FFIModule {
             TermColorAttribute(ColorAttribute::default())
         })
         .register_fn(
+            "vte/iter-cell-bg-fg-set-attr!",
+            |term: &VirtualTerminal, bg: FFIArg, fg: FFIArg| {
+                if let Some(cell) = &term.last_cell {
+                    if let FFIArg::CustomRef(CustomRef { mut custom, .. }) = bg {
+                        if let Some(attr) =
+                            as_underlying_ffi_type::<TermColorAttribute>(custom.get_mut())
+                        {
+                            attr.0 = cell.attrs().to_owned().background();
+
+                            // return true.into_ffi_val();
+                        } else {
+                            // return false.into_ffi_val();
+                        }
+                    } else {
+                        // return false.into_ffi_val();
+                    }
+                } else {
+                    // false.into_ffi_val()
+                }
+
+                if let Some(cell) = &term.last_cell {
+                    if let FFIArg::CustomRef(CustomRef { mut custom, .. }) = fg {
+                        if let Some(attr) =
+                            as_underlying_ffi_type::<TermColorAttribute>(custom.get_mut())
+                        {
+                            attr.0 = cell.attrs().to_owned().foreground();
+
+                            return true.into_ffi_val();
+                        } else {
+                            return false.into_ffi_val();
+                        }
+                    } else {
+                        return false.into_ffi_val();
+                    }
+                } else {
+                    false.into_ffi_val()
+                }
+            },
+        )
+        .register_fn(
             "vte/iter-cell-bg-set-attr!",
             |term: &VirtualTerminal, val: FFIArg| {
                 if let Some(cell) = &term.last_cell {
@@ -524,7 +567,7 @@ fn create_native_pty_system(command: String) -> PtyProcess {
     // TODO: Perhaps, don't use Strings here and instead just
     // use byte strings directly. However I think Strings work
     // just find for now.
-    let (command_sender, command_receiver) = channel::<String>();
+    let (command_sender, command_receiver) = channel::<u8>();
 
     {
         // Obtain the writer.
@@ -557,7 +600,7 @@ fn create_native_pty_system(command: String) -> PtyProcess {
         // data to the stdin of the child in a different thread.
         std::thread::spawn(move || loop {
             while let Ok(command) = command_receiver.recv() {
-                writer.write_all(command.as_bytes()).unwrap();
+                writer.write_all(&[command]).unwrap();
             }
 
             break;
@@ -616,8 +659,23 @@ impl Custom for TermLine {}
 
 impl VirtualTerminal {
     // Keep track of the state of the terminal
-    fn advance_bytes(&mut self, bytes: String) {
+    fn advance_bytes(&mut self, bytes: &str) {
         self.terminal.advance_bytes(bytes)
+    }
+
+    fn advance_bytes_char(&mut self, bytes: char) {
+        self.terminal.advance_bytes(&[bytes as u8])
+    }
+
+    fn advance_bytes_with_carriage_return(&mut self, bytes: &str) {
+        let mut buf = [0; 4];
+
+        for char in bytes.chars() {
+            match char {
+                '\n' => self.terminal.advance_bytes(['\n' as u8, '\r' as u8]),
+                c => self.terminal.advance_bytes(c.encode_utf8(&mut buf)),
+            }
+        }
     }
 
     // Resizes the terminal
