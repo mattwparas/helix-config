@@ -325,8 +325,11 @@
      (define shrink-by-height (- (+ y (area-height calculated-area)) (area-height rect)))
      (define shrink-by-width (- (+ x (area-width calculated-area)) (area-width rect)))
 
-     (term-resize-impl (- (unbox (Terminal-viewport-height state)) shrink-by-height)
-                       (- (unbox (Terminal-viewport-width state)) shrink-by-width))
+     (displayln shrink-by-height shrink-by-width)
+
+     (term-resize-from-term state
+                            (- (unbox (Terminal-viewport-height state)) shrink-by-height)
+                            (- (unbox (Terminal-viewport-width state)) shrink-by-width))
 
      ;; Grab the new area via this calculation
      (calculate-block-area state rect)]
@@ -334,8 +337,11 @@
     [resize-height?
      (define shrink-by-height (- (+ y (area-height calculated-area)) (area-height rect)))
 
-     (term-resize-impl (- (unbox (Terminal-viewport-height state)) shrink-by-height)
-                       (unbox (Terminal-viewport-width state)))
+     (displayln shrink-by-height)
+
+     (term-resize-from-term state
+                            (- (unbox (Terminal-viewport-height state)) shrink-by-height)
+                            (unbox (Terminal-viewport-width state)))
 
      ;; Grab the new area via this calculation
      (calculate-block-area state rect)]
@@ -343,9 +349,11 @@
     [resize-width?
 
      (define shrink-by-width (- (+ x (area-width calculated-area)) (area-width rect)))
+     (displayln shrink-by-width)
 
-     (term-resize-impl (unbox (Terminal-viewport-height state))
-                       (- (unbox (Terminal-viewport-width state)) shrink-by-width))
+     (term-resize-from-term state
+                            (unbox (Terminal-viewport-height state))
+                            (- (unbox (Terminal-viewport-width state)) shrink-by-width))
 
      ;; Grab the new area via this calculation
      (calculate-block-area state rect)]
@@ -777,6 +785,18 @@
         (set-TerminalRegistry-cursor! *terminal-registry* (+ 1 cursor)))
 
     (show-term (list-ref (TerminalRegistry-terminals *terminal-registry*) (+ 1 cursor)))))
+
+(define (term-resize-from-term terminal rows cols)
+  (define *vte* (Terminal-*vte* terminal))
+  (define *pty-process* (Terminal-*pty-process* terminal))
+
+  (vte/resize *vte* rows cols)
+
+  (when *pty-process*
+    (pty-resize! *pty-process* rows cols))
+
+  (set-box! (Terminal-viewport-width terminal) cols)
+  (set-box! (Terminal-viewport-height terminal) rows))
 
 (define (term-resize-impl rows cols)
   (define cursor (TerminalRegistry-cursor *terminal-registry*))
