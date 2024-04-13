@@ -58,7 +58,7 @@
          term-resize
          (contract/out set-default-terminal-cols! (->/c int? void?))
          (contract/out set-default-terminal-rows! (->/c int? void?))
-
+         (contract/out set-default-shell! (->/c string? void?))
          xplr
          open-debug-window
          close-debug-window)
@@ -67,10 +67,18 @@
 (define *default-terminal-cols* 80)
 
 (define (set-default-terminal-rows! rows)
-  (set! *default-terminal-rows* rows))
+  (set! *default-terminal-rows* rows)
+  void)
 
 (define (set-default-terminal-cols! cols)
-  (set! *default-terminal-cols* cols))
+  (set! *default-terminal-cols* cols)
+  void)
+
+(define *default-shell* "/usr/bin/zsh")
+
+(define (set-default-shell! path-to-shell)
+  (set! *default-shell* path-to-shell)
+  void)
 
 (define default-style (~> (style) (style-bg Color/Black) (style-fg Color/White)))
 
@@ -279,6 +287,10 @@
 (define global-max-height #f)
 (define global-max-width #f)
 
+;; Window size calculation
+(struct FractionAsWidth (fraction))
+(struct FractionAsHeight (fraction))
+
 ;; We don't need to run this on _every_ frame. Just when
 ;; something has actually changed.
 (define (calculate-block-area state rect)
@@ -460,19 +472,28 @@
         (define x-term (unbox (Terminal-x-term state)))
         (define y-term (unbox (Terminal-y-term state)))
 
-        (vector-set! on-click-start 0 (event-mouse-col event))
-        (vector-set! on-click-start 1 (event-mouse-row event))
+        ;; Only drag when the delta is large enough to warrant it
+        ;; TODO: This should be a ratio of the overall screen space
+        (if (or (> (abs delta-x) 3) (> (abs delta-y) 3))
 
-        (set-box! (Terminal-dragged? state) #t)
+            (begin
 
-        (when x-term
-          (when (< (+ x-term delta-x left-min) global-max-width)
-            (set-box! (Terminal-x-term state) (max (+ x-term delta-x) (round left-min)))))
-        (when y-term
-          (when (< (+ y-term delta-y (area-height (unbox (Terminal-area state)))) global-max-height)
-            (set-box! (Terminal-y-term state) (max (+ y-term delta-y) 0))))
+              (vector-set! on-click-start 0 (event-mouse-col event))
+              (vector-set! on-click-start 1 (event-mouse-row event))
 
-        event-result/consume]
+              (set-box! (Terminal-dragged? state) #t)
+
+              (when x-term
+                (when (< (+ x-term delta-x left-min) global-max-width)
+                  (set-box! (Terminal-x-term state) (max (+ x-term delta-x) (round left-min)))))
+              (when y-term
+                (when (< (+ y-term delta-y (area-height (unbox (Terminal-area state))))
+                         global-max-height)
+                  (set-box! (Terminal-y-term state) (max (+ y-term delta-y) 0))))
+
+              event-result/consume)
+
+            event-result/consume-without-rerender)]
        ; [(3) (error "todo")]
        ; [(4) (error "todo")]
        ; [(5) (error "todo")]
