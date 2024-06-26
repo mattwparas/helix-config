@@ -249,8 +249,9 @@
                 (helix.static.open_below)
                 (helix.static.goto_line_start))))
 
-  ;; Set it BACK to where we were previously!
-  (helix.static.set-current-selection-object! current-selection)
+  (unless (currently-in-labelled-buffer? FILE-TREE)
+    ;; Set it BACK to where we were previously!
+    (helix.static.set-current-selection-object! current-selection))
 
   (editor-set-mode! last-mode))
 
