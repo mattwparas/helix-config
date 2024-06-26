@@ -748,7 +748,7 @@
      ;; 45 rows, 80 cols
      (define new-term
        (make-terminal (string-append "Terminal-0")
-                      "/usr/bin/zsh"
+                      *default-shell*
                       *default-terminal-rows*
                       *default-terminal-cols*
                       default-on-start-function
@@ -767,7 +767,7 @@
     (make-terminal
      (string-append "Terminal-"
                     (int->string (length (TerminalRegistry-terminals *terminal-registry*))))
-     "/usr/bin/zsh"
+     *default-shell*
      *default-terminal-rows*
      *default-terminal-cols*
      default-on-start-function
@@ -1041,7 +1041,7 @@
 (define (xplr)
   ;; Set the xplr width and height
   ;; Also configure the location of the file tree
-  (define new-term (make-xplr "/usr/bin/zsh" *default-terminal-rows* *default-terminal-cols*))
+  (define new-term (make-xplr *default-shell* *default-terminal-rows* *default-terminal-cols*))
   (set! *xplr* new-term)
   (show-term new-term))
 
