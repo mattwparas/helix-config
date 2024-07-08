@@ -62,6 +62,8 @@
               'no_op
               "A-d"
               'no_op
+              "F"
+              'no_op
               "tab"
               ':fold-directory
               "E"
@@ -236,6 +238,7 @@
 (define (update-file-tree)
 
   (define current-selection (helix.static.current-selection-object))
+  ; (define line-number (helix.static.get-current-line-number))
   (define last-mode (editor-mode))
 
   (helix.static.select_all)
@@ -249,9 +252,15 @@
                 (helix.static.open_below)
                 (helix.static.goto_line_start))))
 
-  (unless (currently-in-labelled-buffer? FILE-TREE)
-    ;; Set it BACK to where we were previously!
-    (helix.static.set-current-selection-object! current-selection))
+  ;; Set it BACK to where we were previously!
+  ;; TODO: Currently the following bug exists:
+  ;; Open helix, open file tree, run SPC-b to open the file tree
+  ;; buffer (there should now be two of them). Press TAB, then F.
+  ;; Helix will crash. One way to fix it is to not update the selection,
+  ;; however that makes the file tree experience way worse. A better
+  ;; way for now is to just disallow that command in the file tree
+  ;; buffer since I haven't yet figured out how to get it working.
+  (helix.static.set-current-selection-object! current-selection)
 
   (editor-set-mode! last-mode))
 
