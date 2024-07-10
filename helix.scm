@@ -304,7 +304,7 @@
 (define (shell . args)
   ;; Replace the % with the current file
   (define expanded (map (lambda (x) (if (equal? x "%") (current-path) x)) args))
-  (helix.run-shell-command expanded))
+  (apply helix.run-shell-command expanded))
 
 ;;@doc
 ;; Get the path of the currently focused file
@@ -312,8 +312,11 @@
   (insert-string-at-selection (to-string (current-path))))
 
 ;; Only get the doc if it exists - also use real options instead of false here cause it kinda sucks
-(define (editor-get-doc-if-exists editor doc-id)
-  (if (editor-doc-exists? editor doc-id) (editor->get-document editor doc-id) #f))
+; (define (editor-get-doc-if-exists editor doc-id)
+;   (if (editor-doc-exists? editor doc-id) (editor->get-document editor doc-id) #f))
+
+(define (editor-get-doc-if-exists doc-id)
+  (if (editor-doc-exists? doc-id) (editor->get-document doc-id) #f))
 
 (define (current-path)
   (let* ([focus (editor-focus)]
