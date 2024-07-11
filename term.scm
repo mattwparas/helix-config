@@ -432,7 +432,7 @@
                                   cell-str
                                   style-cursor))))
 
-    (log::info! (to-string "Rendering time: " (duration->string (instant/elapsed now))))
+    ;; (log::info! (to-string "Rendering time: " (duration->string (instant/elapsed now))))
 
     ;; Update the cursor accordingly
     (set-position-row! cursor (+ y-offset (vte/cursor-y *vte*)))
@@ -876,7 +876,7 @@
   (define *vte* (Terminal-*vte* state))
   (define now (instant/now))
 
-  (log::info! "Intercepting key press")
+  ; (log::info! "Intercepting key press")
 
   (cond
     ;; If the terminal is focused, we are going to
