@@ -560,6 +560,19 @@
             (begin
               (pty-process-send-command *pty-process* "\x1b")
               event-result/consume))]
+
+       [(equal? char #\c)
+
+        (if (equal? (key-event-modifier event) key-modifier-ctrl)
+            (begin
+              (pty-process-send-command *pty-process* "\x03")
+              event-result/consume)
+
+            (begin
+
+              (pty-process-send-command-char *pty-process* char)
+              event-result/consume))]
+
        [(key-event-enter? event)
         (pty-process-send-command *pty-process* "\r")
         event-result/consume]
