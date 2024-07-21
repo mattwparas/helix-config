@@ -9,13 +9,17 @@
          flush-recent-files
          recentf-open-files
          recentf-snapshot
-         get-recent-files)
+         get-recent-files
+         set-recent-file-location)
 
 (define MAX-FILE-COUNT 25)
 
 (define RECENTF-FILE ".helix/recent-files.txt")
 
 (define ENABLED #f)
+
+(define (set-recent-file-location! path)
+  (set! RECENTF-FILE path))
 
 ;; Only get the doc if it exists - also use real options instead of false here cause it kinda sucks
 (define (editor-get-doc-if-exists doc-id)
