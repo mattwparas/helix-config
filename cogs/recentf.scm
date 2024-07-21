@@ -10,7 +10,7 @@
          recentf-open-files
          recentf-snapshot
          get-recent-files
-         set-recent-file-location)
+         set-recent-file-location!)
 
 (define MAX-FILE-COUNT 25)
 
