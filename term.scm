@@ -1020,11 +1020,24 @@
 
                                 (if *NEXT-LOOP*
                                     (begin
-                                      (helix.open (vte/line->string (list-ref (vte/lines *vte*) 2)))
-                                      (set! *EXITED* #f)
-                                      (set! *NEXT-LOOP* #f)
-                                      (stop-terminal term)
-                                      (pop-last-component! "xplr"))
+
+                                      (enqueue-thread-local-callback-with-delay
+                                       100 ;; ms
+                                       (lambda ()
+                                         (helix.open (vte/line->string (list-ref (vte/lines *vte*)
+                                                                                 2)))
+                                         (set! *EXITED* #f)
+                                         (set! *NEXT-LOOP* #f)
+                                         (stop-terminal term)
+                                         (pop-last-component! "xplr")))
+
+                                      ; (displayln (vte/line->string (list-ref (vte/lines *vte*) 2)))
+                                      ; (helix.open (vte/line->string (list-ref (vte/lines *vte*) 2)))
+                                      ; (set! *EXITED* #f)
+                                      ; (set! *NEXT-LOOP* #f)
+                                      ; (stop-terminal term)
+                                      ; (pop-last-component! "xplr")
+                                      )
 
                                     (begin
                                       ;; After the kill switch is enabled,
