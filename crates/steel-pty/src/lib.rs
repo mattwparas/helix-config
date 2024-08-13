@@ -82,14 +82,23 @@ impl PtyProcess {
         self.cancellation_token_sender.send(()).ok();
     }
 
-    pub fn send_command_char(&mut self, command: char) {
-        self.command_sender.send(command as u8).unwrap();
+    // TODO: Replace this with a proper result rather than a bool
+    pub fn send_command_char(&mut self, command: char) -> bool {
+        self.command_sender
+            .send(command as u8)
+            .map(|_| true)
+            .unwrap_or(false)
     }
 
-    pub fn send_command(&mut self, command: &str) {
+    // TODO: Replace this with a proper result rather than a bool
+    pub fn send_command(&mut self, command: &str) -> bool {
         for byte in command.as_bytes() {
-            self.command_sender.send(*byte).unwrap();
+            if let Err(_) = self.command_sender.send(*byte) {
+                return false;
+            }
         }
+
+        true
     }
 
     // TODO: rows + cols should be u16,
