@@ -616,7 +616,7 @@ dependencies = [
  "notify",
  "once_cell",
  "ordered-float",
- "portable-pty 0.8.1 (git+https://github.com/mattwparas/wezterm.git?branch=mwp-public-scroll)",
+ "portable-pty",
  "promise",
  "serde",
  "serde_json",
@@ -993,17 +993,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d8090f921a24b04994d9929e204f50b498a33ea6ba559ffaa05e04f7ee7fb5ab"
 dependencies = [
  "simd-adler32",
-]
-
-[[package]]
-name = "filedescriptor"
-version = "0.8.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7199d965852c3bac31f779ef99cbb4537f80e952e2d6aa0ffeb30cce00f4f46e"
-dependencies = [
- "libc",
- "thiserror",
- "winapi",
 ]
 
 [[package]]
@@ -2432,33 +2421,12 @@ dependencies = [
 [[package]]
 name = "portable-pty"
 version = "0.8.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "806ee80c2a03dbe1a9fb9534f8d19e4c0546b790cde8fd1fea9d6390644cb0be"
-dependencies = [
- "anyhow",
- "bitflags 1.3.2",
- "downcast-rs",
- "filedescriptor 0.8.2",
- "lazy_static",
- "libc",
- "log",
- "nix 0.25.1",
- "serial",
- "shared_library",
- "shell-words",
- "winapi",
- "winreg",
-]
-
-[[package]]
-name = "portable-pty"
-version = "0.8.1"
 source = "git+https://github.com/mattwparas/wezterm.git?branch=mwp-public-scroll#e1975e6586f7156be8da42308cd2aa19d3a22374"
 dependencies = [
  "anyhow",
  "bitflags 1.3.2",
  "downcast-rs",
- "filedescriptor 0.8.3",
+ "filedescriptor",
  "lazy_static",
  "libc",
  "log",
@@ -3015,7 +2983,7 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 [[package]]
 name = "steel-core"
 version = "0.6.0"
-source = "git+https://github.com/mattwparas/steel.git#9b2ada576da13ba0eccd667ecf80e2e2ec613dd0"
+source = "git+https://github.com/Talia-12/steel.git#785312ab654d47dd87c5a2b7a137e9fd9e644346"
 dependencies = [
  "abi_stable",
  "anyhow",
@@ -3063,7 +3031,7 @@ dependencies = [
 [[package]]
 name = "steel-derive"
 version = "0.5.0"
-source = "git+https://github.com/mattwparas/steel.git#9b2ada576da13ba0eccd667ecf80e2e2ec613dd0"
+source = "git+https://github.com/Talia-12/steel.git#785312ab654d47dd87c5a2b7a137e9fd9e644346"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3073,7 +3041,7 @@ dependencies = [
 [[package]]
 name = "steel-gen"
 version = "0.2.0"
-source = "git+https://github.com/mattwparas/steel.git#9b2ada576da13ba0eccd667ecf80e2e2ec613dd0"
+source = "git+https://github.com/Talia-12/steel.git#785312ab654d47dd87c5a2b7a137e9fd9e644346"
 dependencies = [
  "codegen",
  "serde",
@@ -3083,7 +3051,7 @@ dependencies = [
 [[package]]
 name = "steel-parser"
 version = "0.6.0"
-source = "git+https://github.com/mattwparas/steel.git#9b2ada576da13ba0eccd667ecf80e2e2ec613dd0"
+source = "git+https://github.com/Talia-12/steel.git#785312ab654d47dd87c5a2b7a137e9fd9e644346"
 dependencies = [
  "compact_str",
  "fxhash",
@@ -3107,7 +3075,7 @@ dependencies = [
  "futures-time",
  "log",
  "parking_lot 0.11.2",
- "portable-pty 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "portable-pty",
  "steel-core",
  "termwiz",
  "tokio",
@@ -3210,7 +3178,7 @@ dependencies = [
  "base64",
  "bitflags 2.6.0",
  "fancy-regex",
- "filedescriptor 0.8.3",
+ "filedescriptor",
  "finl_unicode",
  "fixedbitset",
  "hex",
@@ -3654,13 +3622,13 @@ dependencies = [
  "bitflags 1.3.2",
  "camino",
  "dirs-next",
- "filedescriptor 0.8.3",
+ "filedescriptor",
  "filenamegen",
  "gethostname",
  "libc",
  "libssh-rs",
  "log",
- "portable-pty 0.8.1 (git+https://github.com/mattwparas/wezterm.git?branch=mwp-public-scroll)",
+ "portable-pty",
  "regex",
  "smol",
  "socket2 0.5.7",

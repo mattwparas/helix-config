@@ -11,9 +11,9 @@ crate-type = ["cdylib"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-portable-pty = "0.8.1"
+portable-pty = { git = "https://github.com/mattwparas/wezterm.git", branch = "mwp-public-scroll", version = "0.8.1" }
 # steel-core = { path = "/home/matt/Documents/steel/crates/steel-core", features = ["dylibs"] }
-steel-core = { git = "https://github.com/mattwparas/steel.git", version = "0.6.0", features = ["anyhow", "dylibs", "sync"] }
+steel-core = { git = "https://github.com/Talia-12/steel.git", version = "0.6.0", features = ["anyhow", "dylibs", "sync"] }
 abi_stable = "0.11.1"
 futures = "0.3.26"
 tokio = { version = "1.29.1", features = ["sync"]}
