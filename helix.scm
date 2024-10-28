@@ -1,7 +1,3 @@
-;; (require-builtin helix/core/typable as helix.)
-;; (require-builtin helix/core/static as helix.static.)
-;; (require-builtin helix/core/editor)
-
 (require (prefix-in helix. "helix/commands.scm"))
 (require (prefix-in helix.static. "helix/static.scm"))
 (require "helix/editor.scm")
@@ -13,7 +9,6 @@
 (require "steel/sorting/merge-sort.scm")
 
 (require "term.scm")
-
 (provide open-term
          new-term
          kill-active-terminal
@@ -21,12 +16,8 @@
          term-resize
          xplr
          open-debug-window
-         close-debug-window)
-
-;; This gets run first...
-; (require "/home/matt/Documents/helix-fork/helix/helix-term/src/commands/engine/controller.scm"
-; (for-syntax
-; "/home/matt/Documents/helix-fork/helix/helix-term/src/commands/engine/controller.scm"))
+         close-debug-window
+         hide-terminal)
 
 ;;;;;;;;;;;;;;;; TESTING SANDBOXING ;;;;;;;;;;;;;;;
 
@@ -115,13 +106,11 @@
 
 (require-builtin steel/random as rand::)
 
-(define rng (rand::thread-rng!))
-
 ;; Picking one from the possible themes is _fine_
 ; (define possible-themes '("tokyonight_storm" "catppuccin_macchiato" "kanagawa"))
 
 (define (select-random lst)
-  (let ([index (rand::rng->gen-range rng 0 (length lst))]) (list-ref lst index)))
+  (let ([index (rand::rng->gen-range 0 (length lst))]) (list-ref lst index)))
 
 (define (randomly-pick-theme options)
   ;; Randomly select the theme from the possible themes list
@@ -315,15 +304,16 @@
 ; (define (editor-get-doc-if-exists editor doc-id)
 ;   (if (editor-doc-exists? editor doc-id) (editor->get-document editor doc-id) #f))
 
-(define (editor-get-doc-if-exists doc-id)
-  (if (editor-doc-exists? doc-id) (editor->get-document doc-id) #f))
+; (define (editor-get-doc-if-exists doc-id)
+;   (if (editor-doc-exists? doc-id) (editor->get-document doc-id) #f))
 
 (define (current-path)
   (let* ([focus (editor-focus)]
-         [focus-doc-id (editor->doc-id focus)]
-         [document (editor-get-doc-if-exists focus-doc-id)])
+         [focus-doc-id (editor->doc-id focus)])
+    (editor-document->path focus-doc-id)))
+; [document (editor-get-doc-if-exists focus-doc-id)])
 
-    (if document (Document-path document) #f)))
+; (if document (Document-path document) #f)))
 
 ;; Last focused - will allow us to swap between the last view we were at
 (define *last-focus* 'uninitialized)

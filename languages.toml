@@ -8,3 +8,7 @@ language-servers = [ "steel-language-server" ]
 [language-server.steel-language-server]
 command = "steel-language-server"
 args = []
+
+
+[language-server.rust-analyzer.config]
+experimental = { testExplorer = true }

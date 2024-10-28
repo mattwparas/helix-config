@@ -4,6 +4,8 @@
 (require-builtin helix/components)
 (require (prefix-in helix. "helix/commands.scm"))
 
+(require "helix/editor.scm")
+
 ;; Pull in all of the functions from the dylib.
 ;; See steel-pty for the definitions
 (#%require-dylib "libsteel_pty"
@@ -61,10 +63,13 @@
          (contract/out set-default-shell! (->/c string? void?))
          xplr
          open-debug-window
-         close-debug-window)
+         close-debug-window
+         hide-terminal)
 
 (define *default-terminal-rows* 45)
-(define *default-terminal-cols* 80)
+
+;; Use this for the width, rows is going to be the default
+(define *default-terminal-cols* 85)
 
 (define (set-default-terminal-rows! rows)
   (set! *default-terminal-rows* rows)
@@ -74,42 +79,49 @@
   (set! *default-terminal-cols* cols)
   void)
 
-(define *default-shell* "/usr/bin/zsh")
+(define *default-shell* "/bin/zsh")
 
 (define (set-default-shell! path-to-shell)
   (set! *default-shell* path-to-shell)
   void)
 
-(define default-style (~> (style) (style-bg Color/Black) (style-fg Color/White)))
+; (define default-style (~> (style) (style-bg Color/Black) (style-fg Color/White)))
+; (define default-style (style))
 
 (define bg-attr (ffi-vector #f #f #f #f))
 (define fg-attr (ffi-vector #f #f #f #f))
 
 ;; Save Color around rather than allocate a new one each time
-(define (attribute->color attr bg/fg base-color)
+(define (attribute->color attr bg/fg base-color fg?)
   (cond
     [(int? attr)
+     ; (log::info! "Getting here")
+     ;; TODO: Figure out why this seems kinda busted?
      (set-color-indexed! base-color attr)
      base-color]
 
     ;; Updating succeeded, use the shared memory space
     [attr
+     (log::info! "Found color")
      (set-color-rgb! base-color
                      (ffi-vector-ref bg/fg 0)
                      (ffi-vector-ref bg/fg 1)
                      (ffi-vector-ref bg/fg 2))
-
      base-color]
 
-    [else #f]))
+    ; base-color
+    [else (if fg? (style->fg (theme->fg *helix.cx*)) base-color)]))
 
 (define (cell-fg-bg->style base-style base-color-fg base-color-bg fg bg)
-  (set-style-bg! base-style
-                 (or (attribute->color (term/color-attribute-set! bg bg-attr) bg-attr base-color-bg)
-                     Color/Black))
-  (set-style-fg! base-style
-                 (or (attribute->color (term/color-attribute-set! fg fg-attr) fg-attr base-color-fg)
-                     Color/White)))
+  (set-style-bg!
+   base-style
+   (or (attribute->color (term/color-attribute-set! bg bg-attr) bg-attr base-color-bg #f)
+       Color/Black))
+
+  (set-style-fg!
+   base-style
+   (or (attribute->color (term/color-attribute-set! fg fg-attr) fg-attr base-color-fg #t)
+       Color/White)))
 
 (define (for-each func lst)
   (if (null? lst)
@@ -266,6 +278,9 @@
 (define (show-term term)
   ;; Update the box to now show this
   (set-box! (Terminal-focused? term) #t)
+
+  (set-editor-clip-right! *default-terminal-cols*)
+
   ;; Mark the terminal as active, only if it isn't active already.
   ;; We don't want to push this component again if it already is
   ;; present on the screen.
@@ -287,9 +302,41 @@
 (define global-max-height #f)
 (define global-max-width #f)
 
+(define stashed-area #f)
+(define terminal-area #f)
+
 ;; Window size calculation
 (struct FractionAsWidth (fraction))
 (struct FractionAsHeight (fraction))
+
+(define *terminal-fraction* (/ 1 3))
+
+;; Do as a percentage of the terminal area, rather
+;; than a fixed size
+(define (alternative-calculate-area state rect)
+  (if (and terminal-area (equal? stashed-area rect))
+      terminal-area
+      (begin
+        (set! stashed-area rect)
+
+        ;; Just drop the width by 4, always use a quarter of the screen
+        (set! *default-terminal-cols* (round (* *terminal-fraction* (area-width rect))))
+
+        (set-editor-clip-right! *default-terminal-cols*)
+        (term-resize-impl (- (area-height rect) 3) (- *default-terminal-cols* 5)) ;; Shave one off
+        (set! terminal-area
+              (area (+ (area-x rect) (- (area-width rect) *default-terminal-cols*))
+                    (area-y rect)
+                    *default-terminal-cols*
+                    (- (area-height rect) 1)))
+        terminal-area)))
+
+; (define (alternative-calculate-block-area state rect)
+;   ;; Perhaps... use this?
+;   (area (unbox (Terminal-x-term state))
+;         (unbox (Terminal-y-term state))
+;         (unbox (Terminal-viewport-width state))
+;         (unbox (Terminal-viewport-height state))))
 
 ;; We don't need to run this on _every_ frame. Just when
 ;; something has actually changed.
@@ -392,17 +439,22 @@
   ;; If this is still alive, keep it around
   (unless (unbox (Terminal-kill-switch state))
 
-    (define block-area (calculate-block-area state rect))
+    (define block-area (alternative-calculate-area state rect))
 
     (define x-offset (+ 1 (area-x block-area)))
     (define y-offset (+ 1 (area-y block-area)))
 
     (define style-cursor (Terminal-style-cursor state))
-    (define color-cursor-fg (Terminal-color-cursor-fg state))
-    (define color-cursor-bg (Terminal-color-cursor-bg state))
+    ; (define color-cursor-fg (Terminal-color-cursor-fg state))
+    ; (define color-cursor-bg (Terminal-color-cursor-bg state))
+
+    (define color-cursor-fg (style->fg (theme->fg *helix.cx*)))
+    (define color-cursor-bg (style->bg (theme->bg *helix.cx*)))
+
     (define *vte* (Terminal-*vte* state))
     (define cursor (Terminal-cursor state))
     (define cell-str (Terminal-str-cell state))
+
     (define cell-fg (Terminal-cell-fg state))
     (define cell-bg (Terminal-cell-bg state))
 
@@ -411,7 +463,11 @@
 
     ;; Clear out the target for the terminal
     (buffer/clear frame block-area)
-    (block/render frame block-area (block))
+    ;; Render a block
+    ; (block/render frame block-area (make-block (style) (style) "all" "plain"))
+    (block/render frame
+                  block-area
+                  (make-block (theme->bg *helix.cx*) (theme->bg *helix.cx*) "all" "plain"))
 
     ;; TODO: Don't render while its being dragged around. We should probably
     ;; rendering something like "<Rendering paused while window is being dragged>"
@@ -555,6 +611,7 @@
             (begin
 
               (set-box! (Terminal-active state) #f)
+              (set-editor-clip-right! 0)
 
               event-result/close)
             (begin
@@ -750,6 +807,18 @@
     (set! debug-window #f)))
 
 ;;@doc
+;; Hides the terminal
+(define (hide-terminal)
+  (define cursor (TerminalRegistry-cursor *terminal-registry*))
+  (define term (list-ref (TerminalRegistry-terminals *terminal-registry*) cursor))
+
+  (when cursor
+    (set-box! (Terminal-focused? term) #f)
+    (set-box! (Terminal-active term) #f)
+    (set-editor-clip-right! 0)
+    (pop-last-component! (Terminal-name term))))
+
+;;@doc
 ;; Opens a new terminal
 (define (open-term)
   (define cursor (TerminalRegistry-cursor *terminal-registry*))
@@ -830,7 +899,8 @@
     (pty-resize! *pty-process* rows cols))
 
   (set-box! (Terminal-viewport-width terminal) cols)
-  (set-box! (Terminal-viewport-height terminal) rows))
+  ; (set-box! (Terminal-viewport-height terminal) rows)
+  )
 
 (define (term-resize-impl rows cols)
   (define cursor (TerminalRegistry-cursor *terminal-registry*))
@@ -852,7 +922,8 @@
   (term-resize-impl (string->int srows) (string->int scols)))
 
 (define (remove-nth lst n)
-  (let loop ([i 0] [lst lst])
+  (let loop ([i 0]
+             [lst lst])
     (cond
       [(= i n) (rest lst)]
       [else (cons (first lst) (loop (add1 i) (rest lst)))])))
@@ -871,7 +942,9 @@
 
   ;; Move the cursor to the first one, if it exists, otherwise false
   (if (empty? (TerminalRegistry-terminals *terminal-registry*))
-      (set-TerminalRegistry-cursor! *terminal-registry* #f)
+      (begin
+        (set-TerminalRegistry-cursor! *terminal-registry* #f)
+        (set-editor-clip-right! 0))
       (set-TerminalRegistry-cursor! *terminal-registry* 0))
 
   (enqueue-thread-local-callback (lambda () void)))
@@ -909,6 +982,9 @@
             (begin
 
               (set-box! (Terminal-active state) #f)
+
+              ;; Reset the clipping back to 0 while its not active
+              (set-editor-clip-right! 0)
 
               event-result/close)
             (begin

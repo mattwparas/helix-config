@@ -13,13 +13,11 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define rng (rand::thread-rng!))
-
 ;; Picking one from the possible themes is _fine_
-(define possible-themes '("tokyonight_storm" "catppuccin_macchiato" "solarized_dark"))
+(define possible-themes '("tokyonight_moon" "monokai_pro_machine"))
 
 (define (select-random lst)
-  (let ([index (rand::rng->gen-range rng 0 (length lst))]) (list-ref lst index)))
+  (let ([index (rand::rng->gen-range 0 (length lst))]) (list-ref lst index)))
 
 (define (randomly-pick-theme options)
   ;; Randomly select the theme from the possible themes list
@@ -48,6 +46,8 @@
   (hash
    "C-r"
    (hash "f" ":recentf-open-files")
+   "space"
+   (hash "l" ":load-buffer")
    ; "c"
    ; ":dummy") ;; "space" (hash "/" ":search-in-directory") ;; Uncomment if you'd like to make this keybinding
    )))
@@ -72,6 +72,8 @@
 (soft-wrap (sw-enable #t))
 
 (randomly-pick-theme possible-themes)
+
+; (open-term)
 
 ;; (show-welcome-message)
 
