@@ -2973,7 +2973,7 @@ dependencies = [
 [[package]]
 name = "steel-core"
 version = "0.6.0"
-source = "git+https://github.com/mattwparas/steel.git#d4ba305f92bbdd18f3ce4dbb41659dfc953e5578"
+source = "git+https://github.com/mattwparas/steel.git#1bb17fceada4dd6535bacaf5c40c965a14620776"
 dependencies = [
  "abi_stable",
  "anyhow",
@@ -3020,7 +3020,7 @@ dependencies = [
 [[package]]
 name = "steel-derive"
 version = "0.5.0"
-source = "git+https://github.com/mattwparas/steel.git#d4ba305f92bbdd18f3ce4dbb41659dfc953e5578"
+source = "git+https://github.com/mattwparas/steel.git#1bb17fceada4dd6535bacaf5c40c965a14620776"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3030,7 +3030,7 @@ dependencies = [
 [[package]]
 name = "steel-gen"
 version = "0.2.0"
-source = "git+https://github.com/mattwparas/steel.git#d4ba305f92bbdd18f3ce4dbb41659dfc953e5578"
+source = "git+https://github.com/mattwparas/steel.git#1bb17fceada4dd6535bacaf5c40c965a14620776"
 dependencies = [
  "codegen",
  "serde",
@@ -3040,7 +3040,7 @@ dependencies = [
 [[package]]
 name = "steel-parser"
 version = "0.6.0"
-source = "git+https://github.com/mattwparas/steel.git#d4ba305f92bbdd18f3ce4dbb41659dfc953e5578"
+source = "git+https://github.com/mattwparas/steel.git#1bb17fceada4dd6535bacaf5c40c965a14620776"
 dependencies = [
  "fxhash",
  "lasso",
@@ -3062,7 +3062,7 @@ dependencies = [
  "futures",
  "futures-time",
  "log",
- "parking_lot 0.12.3",
+ "parking_lot 0.11.2",
  "portable-pty 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "steel-core",
  "termwiz",
