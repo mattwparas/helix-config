@@ -1,2 +1,5 @@
+"/Users/matt/.config/helix/crates/steel-pty/src/lib.rs"
+"/Users/matt/.config/helix/crates/steel-pty/Cargo.toml"
+"/Users/matt/.cargo/registry/src/index.crates.io-6f17d22bba15001f/portable-pty-0.8.1/src/lib.rs"
 "/home/matt/.config/helix/crates/steel-pty/src/lib.rs"
 "/home/matt/.config/helix/crates/steel-pty/Cargo.toml"

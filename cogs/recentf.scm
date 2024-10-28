@@ -22,8 +22,8 @@
   (set! RECENTF-FILE path))
 
 ;; Only get the doc if it exists - also use real options instead of false here cause it kinda sucks
-(define (editor-get-doc-if-exists doc-id)
-  (if (editor-doc-exists? doc-id) (editor->get-document doc-id) #f))
+; (define (editor-get-doc-if-exists doc-id)
+;   (if (editor-doc-exists? doc-id) (editor->get-document doc-id) #f))
 
 (define (read-recent-files)
   (unless (path-exists? ".helix")
@@ -55,11 +55,8 @@
 
 (define (refresh-files)
   (let* ([document-ids (editor-all-documents)]
-         [currently-opened-files (filter string?
-                                         (map (lambda (doc-id)
-                                                (let ([document (editor-get-doc-if-exists doc-id)])
-                                                  (Document-path document)))
-                                              document-ids))])
+         [currently-opened-files
+          (filter string? (map (lambda (doc-id) (editor-document->path doc-id)) document-ids))])
 
     ;; Merge the files with the existing list
     (let* ([full-list (append currently-opened-files *recent-files*)]

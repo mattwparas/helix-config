@@ -32,6 +32,16 @@ pub(crate) struct WriterWrapper {
     writer: Arc<parking_lot::Mutex<Box<dyn Write + Send>>>,
 }
 
+// Note: This is no bueno, but we'll need this for now
+// until we figure out how to relax some of the constraints. I'm guessing
+// that the FFI layer probably just needs to use Mutex instead of RwLock
+// to avoid the Sync problem.
+unsafe impl Send for PtyProcess {}
+unsafe impl Sync for PtyProcess {}
+
+unsafe impl Send for VirtualTerminal {}
+unsafe impl Sync for VirtualTerminal {}
+
 impl WriterWrapper {
     pub fn new(writer: Box<dyn Write + Send>) -> Self {
         Self {
@@ -55,7 +65,7 @@ struct PtyProcess {
     command_sender: Sender<u8>,
     async_receiver: Arc<Mutex<mpsc::UnboundedReceiver<String>>>,
     pty_system: PtyPair,
-    child: Box<dyn Child + Send + Sync>,
+    child: Box<dyn Child + Send + Sync + 'static>,
     writer: WriterWrapper,
 }
 

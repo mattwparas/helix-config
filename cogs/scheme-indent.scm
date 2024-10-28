@@ -58,14 +58,6 @@
 (define (add-lisp-word! word)
   (set! LISP-WORDS (hashset-insert LISP-WORDS word)))
 
-; (define-syntax skip-compile
-;   (syntax-rules ()
-;     [(skip-compile) (begin)]
-;     [(skip-compile expr) (begin)]
-;     [(skip-compile expr exprs ...)
-;      (begin
-;        (skip-compile exprs ...))]))
-
 ;; INCLUDE ON THE NEXT COMPILATION
 ; (skip-compile
 (require-builtin helix/core/text as text.)
@@ -78,7 +70,6 @@
       (begin
         (set-CharIterator-offset! char-iterator (+ (CharIterator-offset char-iterator) 1))
         (set-CharIterator-index! char-iterator (+ (CharIterator-index char-iterator) 1))
-        ; (log::info! (to-string return-value))
         return-value)
       return-value))
 
@@ -154,9 +145,6 @@
                        =>
 
                        (let ([last (CharIterator-take-while-whitespace char-iter-from-paren index)])
-                         ; (log::info! (to-string "Length: " (text.slice-len-chars line)))
-                         ; (log::info! (to-string "Last + offset" (+ last offset)))
-
                          ;; If we have something like (list RET)
                          ;; We want the result to look like:
                          ;; (list
@@ -193,8 +181,6 @@
   ;; Current line that we're iterating over
   (define line (text.rope->line text-up-to-cursor cursor))
 
-  ; (log::info! (to-string "Calling indent loop at line: " (text.slice->string line)))
-
   (if (text.rope-starts-with? (text.rope-trim-start line) ";")
       (if (equal? cursor 0)
           ;; We're at the top
@@ -227,16 +213,10 @@
   (define text-up-to-cursor (text.rope->byte-slice text 0 byte-pos))
   (indent-loop text-up-to-cursor line-before 0))
 
-; )
-
-(define (editor-get-doc-if-exists doc-id)
-  (if (editor-doc-exists? doc-id) (editor->get-document doc-id) #f))
-
 (define (get-document-as-slice)
   (let* ([focus (editor-focus)]
-         [focus-doc-id (editor->doc-id focus)]
-         [document (editor-get-doc-if-exists focus-doc-id)])
-    (text.document->slice document)))
+         [focus-doc-id (editor->doc-id focus)])
+    (editor->text focus-doc-id)))
 
 ;;@doc
 ;; Override the scheme indents with a custom indentation system
