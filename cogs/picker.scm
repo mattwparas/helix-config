@@ -203,12 +203,26 @@
 
   (define selection (try-list-ref view-slice currently-highlighted))
 
+  (define found-style
+    (~> (style)
+        (style-bg (style->bg (theme->bg *helix.cx*)))
+        (style-fg (style->fg (theme->fg *helix.cx*)))))
+
   ;; Clear out the target for the terminal
   ;; Ensure that this is within the bounds
   (buffer/clear frame block-area)
 
+  (block/render frame
+                (area (- (area-x block-area) 1)
+                      (- (area-y block-area) 1)
+                      (+ 2 (area-width block-area))
+                      (+ 2 (area-height block-area)))
+                (make-block (theme->bg *helix.cx*) (theme->bg *helix.cx*) "all" "plain"))
+
   ;; Paint a box around the preview area
-  (block/render frame preview-area (make-block (style) (style) "all" "plain"))
+  (block/render frame
+                preview-area
+                (make-block (theme->bg *helix.cx*) (theme->bg *helix.cx*) "all" "plain"))
 
   ;; If the string has been provided, we should render the values here
   (when (and (function? (Picker-preview-func state)) selection)
@@ -217,7 +231,7 @@
     ((Picker-preview-func state) state selection preview-area frame))
 
   ;; Draw the strings here
-  (frame-set-string! frame x y (text-field->string (Picker-text-buffer state)) (style))
+  (frame-set-string! frame x y (text-field->string (Picker-text-buffer state)) found-style)
 
   (for-each-index
    (lambda (index row)
@@ -227,7 +241,12 @@
 
        (if (equal? index currently-highlighted)
            (begin
-             (frame-set-string! frame x (+ index y 1) wide-string (Picker-highlight-style state))
+             (frame-set-string! frame
+                                x
+                                (+ index y 1)
+                                wide-string
+                                ; (Picker-highlight-style state)
+                                found-style)
              ;; TODO: Clean this up!
              (frame-set-string! frame
                                 x
@@ -237,12 +256,14 @@
                                     (string-append (Picker-highlight-prefix state)
                                                    ((Picker-value-formatter state) row))
                                     (string-append "  " ((Picker-value-formatter state) row)))
-                                (Picker-highlight-style state)))
+                                ; (Picker-highlight-style state)
+                                found-style))
            (frame-set-string! frame
                               x
                               (+ index y 1)
                               (string-append "  " ((Picker-value-formatter state) row))
-                              (Picker-default-style state)))))
+                              ; (Picker-default-style state)
+                              found-style))))
    view-slice
    0))
 
