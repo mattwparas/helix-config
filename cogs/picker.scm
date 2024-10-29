@@ -7,7 +7,7 @@
 (require "helix/editor.scm")
 (require (prefix-in helix.static. "helix/static.scm"))
 
-(provide cursor-selection)
+(provide picker-selection)
 
 (define (for-each-index func lst index)
   (if (null? lst)
@@ -280,15 +280,15 @@
                   picker-render
                   (hash "handle_event" picker-event-handler)))
 
-(define (test-list _)
-  (list "foo" "bar" "baz" "bananas" "fuzzy-matching" "this seems to work pretty well"))
+; (define (test-list _)
+;   (list "foo" "bar" "baz" "bananas" "fuzzy-matching" "this seems to work pretty well"))
 
-(define (np)
-  (push-component!
-   (picker-selection
-    (flatten (map test-list (range 0 10)))
-    (lambda (_) void)
-    #:preview-function
-    (lambda (picker selection rect frame)
-      (frame-set-string! frame (+ 1 (area-x rect)) (+ 1 (area-y rect)) selection (style)))
-    #:highlight-prefix "> ")))
+; (define (np)
+;   (push-component!
+;    (picker-selection
+;     (flatten (map test-list (range 0 10)))
+;     (lambda (_) void)
+;     #:preview-function
+;     (lambda (picker selection rect frame)
+;       (frame-set-string! frame (+ 1 (area-x rect)) (+ 1 (area-y rect)) selection (style)))
+;     #:highlight-prefix "> ")))
