@@ -61,7 +61,9 @@
                ;; The style to highlight the lines that are not selected
                default-style
                ;; The style to highlight the selected lines
-               highlight-style))
+               highlight-style
+               ;; The cursor position
+               cursor-position))
 
 ;; Moves the cursor down
 (define (move-cursor-down picker)
@@ -97,6 +99,9 @@
     (set-box! window-start
               (saturating-sub (unbox current) (- (unbox (Picker-max-length picker)) 2)))))
 
+(define (picker-cursor-handler state _)
+  (Picker-cursor-position state))
+
 (define (picker-event-handler state event)
   (define char (key-event-char event))
 
@@ -129,6 +134,9 @@
     [(key-event-backspace? event)
      (pop-character (Picker-text-buffer state))
 
+     ; (set-position-col! (Picker-cursor-position state)
+     ;                    (- (position-col (Picker-cursor-position state)) 1))
+
      (set-box! (Picker-items-view state)
                (fuzzy-match (text-field->string (Picker-text-buffer state))
                             ;; TODO: Assume that these are strings for the purpose?
@@ -139,6 +147,10 @@
     ;; This is dumb, but we can do it
     [(char? char)
      (push-character (Picker-text-buffer state) char)
+
+     ;; Move the col up one
+     ; (set-position-col! (Picker-cursor-position state)
+     ;                    (+ (position-col (Picker-cursor-position state)) 1))
 
      ;; Fuzzy match here
 
@@ -233,6 +245,10 @@
   ;; Draw the strings here
   (frame-set-string! frame x y (text-field->string (Picker-text-buffer state)) found-style)
 
+  (set-position-row! (Picker-cursor-position state) y)
+  (set-position-col! (Picker-cursor-position state)
+                     (+ x (length (MutableTextField-text (Picker-text-buffer state)))))
+
   (for-each-index
    (lambda (index row)
      ;; Don't render if its below the bottom of the parent frame
@@ -297,9 +313,10 @@
                           formatter
                           highlight-prefix
                           default-style
-                          highlight-style)
+                          highlight-style
+                          (position 0 0))
                   picker-render
-                  (hash "handle_event" picker-event-handler)))
+                  (hash "handle_event" picker-event-handler "cursor" picker-cursor-handler)))
 
 ; (define (test-list _)
 ;   (list "foo" "bar" "baz" "bananas" "fuzzy-matching" "this seems to work pretty well"))
