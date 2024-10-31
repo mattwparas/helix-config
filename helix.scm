@@ -222,6 +222,21 @@
     (highlight-to-matching-paren)
     (helix.static.delete_selection)))
 
+(provide eval-sexpr)
+
+;;@doc
+;; Evaluate the s-expression underneath the cursor
+(define (eval-sexpr)
+  (define current-selection-object (helix.static.current-selection-object))
+  (define current-selection (helix.static.current_selection))
+  (define last-mode (editor-mode))
+  (helix.static.match_brackets)
+  (helix.static.select_mode)
+  (helix.static.match_brackets)
+  (eval-string (helix.static.current-highlighted-text!))
+  (editor-set-mode! last-mode)
+  (helix.static.set-current-selection-object! current-selection-object))
+
 ; (minor-mode! "+" ("l" => lam)
 ;                  ("q" => (set-theme-dracula lam)))
 

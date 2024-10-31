@@ -33,7 +33,9 @@
 
 ;; Set the global keybinding for now
 (add-global-keybinding
- (hash "normal" (hash "C-r" (hash "f" ":recentf-open-files") "space" (hash "l" ":load-buffer"))))
+ (hash
+  "normal"
+  (hash "C-r" (hash "f" ":recentf-open-files") "space" (hash "l" ":load-buffer" "o" ":eval-sexpr"))))
 
 (define scm-keybindings (hash "insert" (hash "ret" ':scheme-indent "C-l" ':insert-lambda)))
 
