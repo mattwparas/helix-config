@@ -162,6 +162,8 @@
 
      event-result/consume]
 
+    [(mouse-event? event) event-result/ignore]
+
     [else
      ;; TODO: Include a completion handler here!
      (enqueue-thread-local-callback (lambda () (pop-last-component! "steel-picker")))
