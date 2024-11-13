@@ -795,6 +795,11 @@
     [else
      (define new-debug-window (make-debug-window *default-terminal-rows* *default-terminal-cols* #f))
      (set! debug-window new-debug-window)
+
+     ;; TODO: Fix this!
+     (set-TerminalRegistry-terminals! *terminal-registry* (list new-debug-window))
+     (set-TerminalRegistry-cursor! *terminal-registry* 0)
+
      (show-term new-debug-window)]))
 
 (define (close-debug-window)
@@ -910,7 +915,8 @@
 
   (vte/resize *vte* rows cols)
 
-  (pty-resize! *pty-process* rows cols)
+  (when *pty-process*
+    (pty-resize! *pty-process* rows cols))
 
   (set-box! (Terminal-viewport-width terminal) cols)
   (set-box! (Terminal-viewport-height terminal) rows))

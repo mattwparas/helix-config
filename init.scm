@@ -8,7 +8,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Picking one from the possible themes is _fine_
-(define possible-themes '("tokyonight_moon" "monokai_pro_machine"))
+(define possible-themes '("tokyonight_moon"))
 
 (define (select-random lst)
   (let ([index (rand::rng->gen-range 0 (length lst))]) (list-ref lst index)))

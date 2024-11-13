@@ -203,3 +203,6 @@
                           highlight-style)
                   picker-render
                   (hash "handle_event" picker-event-handler)))
+
+(define (np)
+  (push-component! (cursor-selection (range 0 100) (lambda (_) void))))
