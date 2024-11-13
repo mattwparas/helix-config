@@ -76,8 +76,8 @@
          markup.list.checked
          markup.list.unchecked
          markup.bold
-         markup.ialic
-         markuip.strikethrough
+         markup.italic
+         markup.strikethrough
          markup.link
          markup.link.url
          markup.link.label
