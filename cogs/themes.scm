@@ -137,7 +137,7 @@
          ui.text.info
          ui.virtual.ruler
          ui.virtual.whitespace
-         ui.virtual.indent-guie
+         ui.virtual.indent-guide
          ui.virtual.inlay-hint
          ui.virtual.inlay-hint.parameter
          ui.virtual.inlay-hint.type
