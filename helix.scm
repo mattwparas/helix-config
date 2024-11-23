@@ -7,6 +7,8 @@
 
 (require "cogs/package.scm")
 
+; (require "cogs/themes/spacemacs.scm")
+
 ;; Register helix packages - these will be dynamically
 ;; required in the global environment when this file is required.
 ;;
@@ -20,6 +22,9 @@
 (load-package "cogs/git-status-picker.scm")
 (load-package "cogs/scheme-indent.scm")
 (load-package "cogs/helix-ext.scm")
+
+;; Additional themes
+(load-package "cogs/themes/spacemacs.scm")
 
 ;; Make this accessible to the global context
 (provide list-packages)
