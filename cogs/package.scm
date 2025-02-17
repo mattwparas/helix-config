@@ -29,7 +29,8 @@
 ;; If it fails, the repl should continue on, business as usual
 (define (load-package path)
   (with-handler (lambda (err)
-                  (displayln "Error requiring module: " path)
+                  (log::info! (to-string "Error requiring module: " path))
+                  (log::info! (to-string err))
                   (mark-package-loaded! path #f))
                 (eval `(require ,path))
                 (mark-package-loaded! path #t)))
