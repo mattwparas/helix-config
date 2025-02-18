@@ -5,6 +5,10 @@
 (require "helix/editor.scm")
 (require "helix/misc.scm")
 
+(require "steel/logging/log.scm")
+
+(require "cogs/project.scm")
+
 (provide refresh-files
          flush-recent-files
          recentf-open-files
@@ -14,9 +18,13 @@
 
 (define MAX-FILE-COUNT 25)
 
-(define RECENTF-FILE ".helix/recent-files.txt")
+(define RECENTF-FILE "recent-files.txt")
 
-(define ENABLED #f)
+(log/info! . "Starting recentf.scm")
+(log/info! . (string-append "project helix is " (get-project-helix)))
+
+(define (get-recent-file-location)
+  (in-project-helix RECENTF-FILE))
 
 (define (set-recent-file-location! path)
   (set! RECENTF-FILE path))
@@ -26,13 +34,10 @@
 ;   (if (editor-doc-exists? doc-id) (editor->get-document doc-id) #f))
 
 (define (read-recent-files)
-  (unless (path-exists? ".helix")
-    (create-directory! ".helix"))
-
   (cond
     ;; We're just storing these as strings with the quotes still there, so that we
     ;; can call `read` on them accordingly
-    [(path-exists? RECENTF-FILE) (~> (open-input-file RECENTF-FILE) (read-port-to-string) (read!))]
+    [(path-exists? (get-recent-file-location)) (~> (open-input-file (get-recent-file-location)) (read-port-to-string) (read!))]
     [else '()]))
 
 (define *recent-files* (read-recent-files))
@@ -66,7 +71,7 @@
 
 (define (flush-recent-files)
   ;; Open the output file, and then we'll write all the recent files down
-  (let ([output-file (open-output-file RECENTF-FILE)])
+  (let ([output-file (open-output-file (get-recent-file-location))])
     (map (lambda (line)
            (when (string? line)
              (write-line! output-file line)))
