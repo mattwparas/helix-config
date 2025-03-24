@@ -602,7 +602,7 @@
        ;; Backspace
        [(key-event-backspace? event)
 
-        (pty-process-send-command *pty-process* "\x7f")
+        (pty-process-send-command *pty-process* "\x7f;")
         event-result/consume]
 
        ;; Close with ctrl-esc
@@ -615,14 +615,14 @@
 
               event-result/close)
             (begin
-              (pty-process-send-command *pty-process* "\x1b")
+              (pty-process-send-command *pty-process* "\x1b;")
               event-result/consume))]
 
        [(equal? char #\c)
 
         (if (equal? (key-event-modifier event) key-modifier-ctrl)
             (begin
-              (pty-process-send-command *pty-process* "\x03")
+              (pty-process-send-command *pty-process* "\x03;")
               event-result/consume)
 
             (begin
@@ -642,21 +642,21 @@
               event-result/consume)
 
             (begin
-              (pty-process-send-command *pty-process* "\x09")
+              (pty-process-send-command *pty-process* "\x09;")
               event-result/consume))]
 
        ;; TODO: Handle modifiers here
        [(key-event-up? event)
-        (pty-process-send-command *pty-process* "\x1b[A")
+        (pty-process-send-command *pty-process* "\x1b;[A")
         event-result/consume]
        [(key-event-down? event)
-        (pty-process-send-command *pty-process* "\x1b[B")
+        (pty-process-send-command *pty-process* "\x1b;[B")
         event-result/consume]
        [(key-event-right? event)
-        (pty-process-send-command *pty-process* "\x1b[C")
+        (pty-process-send-command *pty-process* "\x1b;[C")
         event-result/consume]
        [(key-event-left? event)
-        (pty-process-send-command *pty-process* "\x1b[D")
+        (pty-process-send-command *pty-process* "\x1b;[D")
         event-result/consume]
 
        [char
@@ -979,7 +979,7 @@
        ;; Backspace
        [(key-event-backspace? event)
 
-        (pty-process-send-command *pty-process* "\x7f")
+        (pty-process-send-command *pty-process* "\x7f;")
         event-result/consume-without-rerender]
 
        ;; Close with ctrl-esc
@@ -994,7 +994,7 @@
 
               event-result/close)
             (begin
-              (pty-process-send-command *pty-process* "\x1b")
+              (pty-process-send-command *pty-process* "\x1b;")
               event-result/consume-without-rerender))]
        [(key-event-enter? event)
         (pty-process-send-command *pty-process* "\r")
@@ -1016,21 +1016,21 @@
               event-result/consume-without-rerender)
 
             (begin
-              (pty-process-send-command *pty-process* "\x09")
+              (pty-process-send-command *pty-process* "\x09;")
               event-result/consume-without-rerender))]
 
        ;; TODO: Handle modifiers here
        [(key-event-up? event)
-        (pty-process-send-command *pty-process* "\x1b[A")
+        (pty-process-send-command *pty-process* "\x1b;[A")
         event-result/consume-without-rerender]
        [(key-event-down? event)
-        (pty-process-send-command *pty-process* "\x1b[B")
+        (pty-process-send-command *pty-process* "\x1b;[B")
         event-result/consume-without-rerender]
        [(key-event-right? event)
-        (pty-process-send-command *pty-process* "\x1b[C")
+        (pty-process-send-command *pty-process* "\x1b;[C")
         event-result/consume-without-rerender]
        [(key-event-left? event)
-        (pty-process-send-command *pty-process* "\x1b[D")
+        (pty-process-send-command *pty-process* "\x1b;[D")
         event-result/consume-without-rerender]
 
        [char
