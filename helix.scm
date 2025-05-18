@@ -42,15 +42,15 @@
          open-helix-scm
          open-init-scm
          new-function
-         shell
          current-focus
          git-add
-         load-buffer)
+         load-buffer
+         expanded-shell)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (git-add)
-  (shell "git" "add" "%"))
+  (expanded-shell "git" "add" "%"))
 
 (provide fmt-lambda)
 
@@ -92,9 +92,9 @@
 (define (move-window-left)
   (helix.static.move-window-far-left))
 
-(define (test-component)
-  (push-component!
-   (new-component! "steel-dynamic-component" (list) (lambda (area frame context) void) (hash))))
+; (define (test-component)
+;   (push-component!
+;    (new-component! "steel-dynamic-component" (list) (lambda (area frame context) void) (hash))))
 
 (define (helix-prompt! prompt-str thunk)
   (push-component! (prompt prompt-str thunk)))
@@ -111,9 +111,14 @@
 
 ;;@doc
 ;; Specialized shell - also be able to override the existing definition, if possible.
-(define (shell . args)
+(define (expanded-shell . args)
   ;; Replace the % with the current file
-  (define expanded (map (lambda (x) (if (equal? x "%") (current-path) x)) args))
+  (define expanded
+    (map (lambda (x)
+           (if (equal? x "%")
+               (current-path)
+               x))
+         args))
   (apply helix.run-shell-command expanded))
 
 ;;@doc
