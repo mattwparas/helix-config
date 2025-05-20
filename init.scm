@@ -8,7 +8,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Picking one from the possible themes is _fine_
-(define possible-themes '("tokyonight_moon"))
+(define possible-themes '("focus_nova"))
 
 (define (select-random lst)
   (let ([index (rand::rng->gen-range 0 (length lst))]) (list-ref lst index)))
@@ -57,6 +57,19 @@
 (soft-wrap (sw-enable #t))
 
 (randomly-pick-theme possible-themes)
+
+(update-language-config! "scheme"
+                         (hash 'name
+                               "scheme"
+                               'formatter
+                               (hash 'command "raco" 'args '("fmt" "-i"))
+                               'auto-format
+                               #t
+                               'language-servers
+                               '("steel-language-server")))
+
+(set-lsp-config! "steel-language-server" (hash 'command "steel-language-server" 'args '()))
+(set-lsp-config! "rust-analyzer" (hash 'config (hash 'experimental (hash 'testExplorer #t))))
 
 ; (open-term)
 
