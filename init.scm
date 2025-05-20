@@ -58,6 +58,7 @@
 
 (randomly-pick-theme possible-themes)
 
+;; Macro for language config?
 (update-language-config! "scheme"
                          (hash 'name
                                "scheme"
@@ -70,6 +71,23 @@
 
 (set-lsp-config! "steel-language-server" (hash 'command "steel-language-server" 'args '()))
 (set-lsp-config! "rust-analyzer" (hash 'config (hash 'experimental (hash 'testExplorer #t))))
+
+(define-syntax language
+  (syntax-rules (#%crunch #%name #%conf)
+    [(_ #%crunch #%name name #%conf conf (key value))
+     (update-language-config! name (hash-insert conf (quote key) value))]
+    [(_ #%crunch #%name name #%conf conf (key value) remaining ...)
+     ;  ;; Crunch the remaining stuff
+     (language #%crunch #%name name #%conf (hash-insert conf (quote key) value) remaining ...)]
+    [(_ name (key value)) (language #%crunch #%name name #%conf (hash) (key value))]
+    [(_ name (key value) ...) (language #%crunch #%name name #%conf (hash) (key value) ...)]))
+
+;; New language definition
+(language "scheme"
+          (name "scheme")
+          (formatter (hash 'command "raco" 'args '("fmt" "-i")))
+          (auto-format #true)
+          (language-servers '("steel-language-server")))
 
 ; (open-term)
 
