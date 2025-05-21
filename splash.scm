@@ -1,6 +1,8 @@
 (require "helix/components.scm")
 (require "helix/misc.scm")
 
+(provide show-splash)
+
 (define (for-each-index func lst index)
   (if (null? lst)
       void
@@ -12,23 +14,24 @@
 
 (define splash
   "
-       .
-       ###x.        .|
-       d#####x,   ,v||
-        '+#####v||||||
-           ,v|||||+'.      _     _           _
-        ,v|||||^'>####    | |   | |   ___   | | (_) __  __
-       |||||^'  .v####    | |___| |  /   \\  | |  _  \\ \\/ /
-       ||||=..v#####P'    |  ___  | /  ^  | | | | |  \\  /
-       ''v'>#####P'       | |   | | |  ---  | | | |  /  \\
-       ,######/P||x.      |_|   |_|  \\___/  |_| |_| /_/\\_\\
-       ####P' \"x|||||,
-       |/'       'x|||    A post-modern modal text editor.
-        '           '|")
+ .
+ ###x.        .|
+ d#####x,   ,v||
+  '+#####v||||||
+     ,v|||||+'.      _     _           _
+  ,v|||||^'>####    | |   | |   ___   | | (_) __  __
+ |||||^'  .v####    | |___| |  /   \\  | |  _  \\ \\/ /
+ ||||=..v#####P'    |  ___  | /  ^  | | | | |  \\  /
+ ''v'>#####P'       | |   | | |  ---  | | | |  /  \\
+ ,######/P||x.      |_|   |_|  \\___/  |_| |_| /_/\\_\\
+ ####P' \"x|||||,
+ |/'       'x|||    (A (post-modern (modal (text editor)))).
+  '           '|")
 
 (define splash-split (split-many splash "\n"))
 
 (define max-width (apply max (map string-length splash-split)))
+(define splash-depth (length splash-split))
 
 (struct Splash ())
 
@@ -38,13 +41,13 @@
   ;; Calculate the block area in terms of the parent
   ; (define half-parent-width (round (/ (area-width rect) 2)))
 
-  (define half-parent-width (* 2 max-width))
+  (define half-parent-width (+ 10 max-width))
 
-  (define half-parent-height (round (/ (area-height rect) 2)))
+  (define half-parent-height (round (/ (area-height rect) 4)))
 
   ; (define starting-x-offset (round (/ (area-width rect) 4)))
 
-  (define starting-x-offset (exact (- (round (/ (area-width rect) 2)) max-width)))
+  (define starting-x-offset (exact (- (round (/ (area-width rect) 2)) (round (/ max-width 2)) 5)))
   ; (define starting-x-offset (round (*  (/ (area-width rect) 2) max-width)))
 
   (define starting-y-offset (round (/ (area-height rect) 4)))
@@ -85,7 +88,14 @@
         (style-fg (style->fg (theme->fg *helix.cx*)))))
 
   (define text-style (theme-scope "ui.text"))
+  (define bg-style (theme-scope "ui.background"))
 
+  ; (define experiment (~> (style) (style-fg Color/Blue)))
+
+  (define string-text (theme-scope "string"))
+  (define keyword (theme-scope "keyword"))
+
+  ; (displayln text-style)
   ; (error "test")
 
   ;; Clear out the target for the terminal
@@ -99,32 +109,20 @@
                       (+ 2 (area-height block-area)))
                 ;; TODO: Figure out how to get the styles right
                 #;(make-block (theme->bg *helix.cx*) (theme->bg *helix.cx*) "all" "plain")
-                (make-block found-style found-style "all" "plain"))
+                (make-block bg-style bg-style "all" "plain"))
 
-  ;; Paint a box around the preview area
-  ; (block/render frame
-  ;               preview-area
-  ;               (make-block (theme->bg *helix.cx*) (theme->bg *helix.cx*) "all" "plain"))
-
-  ; ;; If the string has been provided, we should render the values here
-  ; (when (and (function? (Picker-preview-func state)) selection)
-  ;   ;; Call the picker preview function provided, assuming it is provided
-  ;   ;; We can just use this to render some strings associated with the selection?
-  ;   ((Picker-preview-func state) state selection preview-area frame))
-
-  ;; Draw the strings here
-  ; (frame-set-string! frame x y (text-field->string (Picker-text-buffer state)) found-style)
-
-  ; (set-position-row! (Picker-cursor-position state) y)
-  ; (set-position-col! (Picker-cursor-position state)
-  ;                    (+ x (length (MutableTextField-text (Picker-text-buffer state)))))
-
-  (for-each-index (lambda (index line) (frame-set-string! frame x (+ y index) line text-style))
+  (for-each-index (lambda (index line) (frame-set-string! frame x (+ y index) line string-text))
                   splash-split
-                  0))
+                  0)
 
-(define (splash-event-handler state event)
-  event-result/close)
+  ;; Render the various things. Probably just, <space> - F to pick files?
+  (frame-set-string! frame x (+ y splash-depth 3) "<space>f to open the file picker" keyword)
+  (frame-set-string! frame x (+ y splash-depth 4) "<space>? to see all the commands" keyword)
+  (frame-set-string! frame x (+ y splash-depth 5) ":theme <name> to change themes" keyword)
+  (frame-set-string! frame x (+ y splash-depth 6) ":evalp to evaluate a steel expression" keyword))
+
+(define (splash-event-handler _ event)
+  (if (key-event? event) event-result/close event-result/ignore))
 
 (define (show-splash)
   (push-component! (new-component! "splash-screen"

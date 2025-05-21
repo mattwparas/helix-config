@@ -4,6 +4,7 @@
 (require (prefix-in helix. "helix/commands.scm"))
 (require (prefix-in helix.static. "helix/static.scm"))
 (require "helix/configuration.scm")
+(require "splash.scm")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -88,6 +89,9 @@
           (formatter (hash 'command "raco" 'args '("fmt" "-i")))
           (auto-format #true)
           (language-servers '("steel-language-server")))
+
+(when (equal? (command-line) '("hx"))
+  (show-splash))
 
 ; (open-term)
 
