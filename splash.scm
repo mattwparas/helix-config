@@ -86,7 +86,7 @@
 
   (define text-style (theme-scope "ui.text"))
 
-  (error "test")
+  ; (error "test")
 
   ;; Clear out the target for the terminal
   ;; Ensure that this is within the bounds
