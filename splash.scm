@@ -75,8 +75,6 @@
                       (- (area-y block-area) 1)
                       (+ 2 (area-width block-area))
                       (+ 2 (area-height block-area)))
-                ;; TODO: Figure out how to get the styles right
-                #;(make-block (theme->bg *helix.cx*) (theme->bg *helix.cx*) "all" "plain")
                 (make-block bg-style bg-style "all" "plain"))
 
   (for-each-index (lambda (index line) (frame-set-string! frame x (+ y index) line string-text))
