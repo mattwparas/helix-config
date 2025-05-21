@@ -232,7 +232,7 @@
 ;     (if (true-color-p) "#32322c" "#262626")
 ;     (if (true-color-p) "#f6f1e1" "#ffffff")))
 
-(define spacemacs-hash (hash "ui.text" (hash 'bg bg1 'fg base) "ui.selection" (hash 'bg highlight)))
+(define spacemacs-hash (hash "ui.text" (hash 'fg base) "ui.selection" (hash 'bg highlight)))
 
 (define built-theme (hashmap->theme "spacemacs" spacemacs-hash))
 
@@ -268,7 +268,9 @@
     (theme.type (~> (style) (style-fg (string->color type))))
     (theme.type.builtin (~> (style) (style-fg (string->color type))))
     (theme.variable (~> (style) (style-fg (string->color var))))
-    (theme.namespace (~> (style) (style-fg (string->color type)))))
+    (theme.namespace (~> (style) (style-fg (string->color type))))
+    (theme.ui.cursor.primary (~> (style) style-with-reversed))
+    (theme.ui.cursorline (~> (style) (style-bg (string->color highlight-dim)))))
 
 ; (show-paren-match ((,class (:foreground ,mat :inherit bold  :underline ,(when spacemacs-theme-underline-parens t)))))
 

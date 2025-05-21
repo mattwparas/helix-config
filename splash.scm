@@ -66,17 +66,6 @@
   (define string-text (theme-scope "string"))
   (define keyword (theme-scope "keyword"))
 
-  ;; Clear out the target for the terminal
-  ;; Ensure that this is within the bounds
-  (buffer/clear frame block-area)
-
-  (block/render frame
-                (area (- (area-x block-area) 1)
-                      (- (area-y block-area) 1)
-                      (+ 2 (area-width block-area))
-                      (+ 2 (area-height block-area)))
-                (make-block bg-style bg-style "all" "plain"))
-
   (for-each-index (lambda (index line) (frame-set-string! frame x (+ y index) line string-text))
                   splash-split
                   0)
@@ -88,7 +77,7 @@
   (frame-set-string! frame x (+ y splash-depth 6) ":evalp to evaluate a steel expression" keyword))
 
 (define (splash-event-handler _ event)
-  (if (key-event? event) event-result/close event-result/ignore))
+  (if (key-event? event) event-result/ignore-and-close event-result/ignore))
 
 (define (show-splash)
   (push-component! (new-component! "splash-screen"

@@ -149,8 +149,9 @@
          ui.selection
          ui.selection.primary
          ui.highlight
+         ui.cursorline
          ui.cursorline.primary
-         ui.cursorline.primary
+         ui.cursorline.secondary
          ui.cursorcolumn.primary
          ui.cursorcolumn.secondary
          warning
@@ -349,6 +350,7 @@
 (theme-func ui.selection "For selections in the editing area")
 (theme-func ui.selection.primary)
 (theme-func ui.highlight "Highlighted lines in the picker preview")
+(theme-func ui.cursorline "The line of the cursor (if cursorline is enabled)")
 (theme-func ui.cursorline.primary "The line of the primary cursor (if cursorline is enabled)")
 (theme-func ui.cursorline.secondary "The line of the secondary cursor (if cursorline is enabled)")
 (theme-func ui.cursorcolumn.primary "The column of the primary cursor (if cursorcolumn is enabled)")

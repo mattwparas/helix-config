@@ -29,6 +29,7 @@
 (define (running-on-main-thread?)
   (= (current-thread-id) *helix.id*))
 
+;;@doc
 ;; If running on the main thread already, just do nothing.
 ;; Check the ID of the engine, and if we're already on the
 ;; main thread, just continue as is - i.e. just block.
@@ -41,5 +42,7 @@
         (acquire-context-lock thunk task)
         task)))
 
+;;@doc
+;; Block on the given function.
 (define (hx.block-on-task thunk)
   (if (running-on-main-thread?) (thunk) (block-on-task (hx.with-context thunk))))
