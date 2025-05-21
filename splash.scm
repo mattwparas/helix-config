@@ -36,23 +36,12 @@
 (struct Splash ())
 
 (define (splash-render state rect frame)
-  ;; Snag the cursor position, mapped to an index within the list
-
-  ;; Calculate the block area in terms of the parent
-  ; (define half-parent-width (round (/ (area-width rect) 2)))
-
   (define half-parent-width (+ 10 max-width))
 
   (define half-parent-height (round (/ (area-height rect) 4)))
-
-  ; (define starting-x-offset (round (/ (area-width rect) 4)))
-
   (define starting-x-offset (exact (- (round (/ (area-width rect) 2)) (round (/ max-width 2)) 5)))
-  ; (define starting-x-offset (round (*  (/ (area-width rect) 2) max-width)))
-
   (define starting-y-offset (round (/ (area-height rect) 4)))
 
-  ;; Draw a preview area on the right
   (define block-area
     (area starting-x-offset
           (- starting-y-offset 1)
@@ -64,23 +53,8 @@
                  half-parent-height))))
 
   ;; Shift the text about half way through
-  ; (define x (+ (area-x block-area) (round (/ max-width 4))))
   (define x (- (round (/ (area-width rect) 2)) (round (/ max-width 2))))
   (define y (area-y block-area))
-
-  ; ;; Our range should only adjust to match the view port
-  ; (define start (unbox (Picker-window-start state)))
-
-  ; (define currently-highlighted (- cursor-position (unbox (Picker-window-start state))))
-
-  ; (define wide-string (make-string (round (/ (- half-parent-width 2) 2)) #\space))
-
-  ; (set-box! (Picker-max-length state) (area-height block-area))
-
-  ; (define view-slice
-  ;   (slice (unbox (Picker-items-view state)) start (- (unbox (Picker-max-length state)) 1)))
-
-  ; (define selection (try-list-ref view-slice currently-highlighted))
 
   (define found-style
     (~> (style)
@@ -89,14 +63,8 @@
 
   (define text-style (theme-scope "ui.text"))
   (define bg-style (theme-scope "ui.background"))
-
-  ; (define experiment (~> (style) (style-fg Color/Blue)))
-
   (define string-text (theme-scope "string"))
   (define keyword (theme-scope "keyword"))
-
-  ; (displayln text-style)
-  ; (error "test")
 
   ;; Clear out the target for the terminal
   ;; Ensure that this is within the bounds
