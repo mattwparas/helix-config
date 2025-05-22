@@ -27,6 +27,7 @@
 
 (define (unfocus)
   (when focused?
+    (set! focused? #f)
     (pop-last-component-by-name! "focus-mode")
     (enqueue-thread-local-callback (lambda ()
                                      (set-editor-clip-right! 0)
