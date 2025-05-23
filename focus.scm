@@ -11,7 +11,7 @@
 (struct FocusMode ())
 
 (define (render-focus-mode _ rect _)
-  (define width (exact (round (/ (area-width rect) 4))))
+  (define width (exact (round (/ (area-width rect) 6))))
   (set-editor-clip-right! width)
   (set-editor-clip-left! width))
 
