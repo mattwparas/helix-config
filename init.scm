@@ -52,6 +52,43 @@
 ;; <scratch> + <doc id> is probably the best way to handle this?
 (set-global-buffer-or-extension-keymap (hash "scm" standard-keybindings FILE-TREE file-tree-base))
 
+;; Create minor mode
+; (define-syntax keybindings
+;   (syntax-rules ()
+;     [(_ modifier (key function))
+;      (add-global-keybinding (hash modifier (minor-mode-cruncher (key function))))]
+
+;     [(_ modifier (key (function ...)))
+;      (add-global-keybinding (hash modifier (minor-mode-cruncher (key (function ...)))))]
+
+;     [(_ modifier (key function) remaining ...)
+;      (add-global-keybinding (hash modifier (minor-mode-cruncher (key function) remaining ...)))]
+
+;     [(_ modifier (key (function ...)) remaining ...)
+;      (add-global-keybinding (hash modifier (minor-mode-cruncher (key function) ... remaining ...)))]))
+
+; (define-syntax minor-mode-cruncher
+;   (syntax-rules ()
+;     [(minor-mode-cruncher (key (function ...)))
+;      (hash key
+;            ; (map (lambda (x) (string-append ":" (symbol->string x))) (quote (function ...)))
+;            (minor-mode-cruncher (function ...)))]
+
+;     [(minor-mode-cruncher (key function))
+;      (hash key (string-append ":" (symbol->string (quote function))))]
+
+;     ;; TODO: Fix expansion here
+;     [(minor-mode-cruncher (key (function ...)) remaining ...)
+;      (hash-insert (minor-mode-cruncher remaining ...) key (minor-mode-cruncher (function ...)))]
+
+;     [(minor-mode-cruncher (key function) remaining ...)
+;      (hash-insert (minor-mode-cruncher remaining ...)
+;                   key
+;                   (string-append ":" (symbol->string (quote function))))]))
+
+;; New keybindings API
+; (keybindings "normal" ("C-r" ("f" recentf-open-files)) ("space" ("l" load-buffer) ("o" eval-sexpr)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;; Options ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (file-picker (fp-hidden #f))
@@ -60,13 +97,13 @@
 
 (randomly-pick-theme possible-themes)
 
+;; New LSP definitions
 (define-lsp "steel-language-server" (command "steel-language-server") (args '()))
 (define-lsp "rust-analyzer" (config (experimental (hash 'testExplorer #t))))
 
 ;; New language definition
 (language "scheme"
-          (name "scheme")
-          (formatter (hash 'command "raco" 'args '("fmt" "-i")))
+          (formatter (command "raco") (args '("fmt" "-i")))
           (auto-format #true)
           (language-servers '("steel-language-server")))
 
