@@ -61,10 +61,10 @@
 (define-lsp "rust-analyzer" (config (experimental (hash 'testExplorer #t))))
 
 ;; New language definition
-(language "scheme"
-          (formatter (command "raco") (args '("fmt" "-i")))
-          (auto-format #true)
-          (language-servers '("steel-language-server")))
+(define-language "scheme"
+                 (formatter (command "raco") (args '("fmt" "-i")))
+                 (auto-format #true)
+                 (language-servers '("steel-language-server")))
 
 (when (equal? (command-line) '("hx"))
   (show-splash))
