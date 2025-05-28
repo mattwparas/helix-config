@@ -9,7 +9,8 @@
          merge-keybindings
          set-global-buffer-or-extension-keymap
          add-global-keybinding
-         deep-copy-global-keybindings)
+         deep-copy-global-keybindings
+         keymap)
 
 (define (get-doc name)
   ;; Do our best - if the identifier doesn't exist (for example, if we're checking)
@@ -104,3 +105,51 @@
   ;; Copy the global keybindings directly
   ;; off of the configuration object
   (get-keybindings))
+
+(define-syntax #%keybindings
+  (syntax-rules ()
+    [(_ conf (key (value ...) rest ...))
+     (hash-insert conf
+                  (dbg! (if (string? (quote key)) (quote key) (symbol->string (quote key))))
+                  (#%keybindings (hash) (value ...) rest ...))]
+
+    [(_ conf (key (value ...)))
+     (hash (dbg! (if (string? (quote key) (symbol->string (quote key)))))
+           (#%keybindings (hash) (value ...)))]
+
+    [(_ conf (key value))
+
+     (hash-insert conf
+                  (dbg! (if (string? (quote key)) (quote key) (symbol->string (quote key))))
+                  (if (string? value) value (~>> (quote value) symbol->string (string-append ":"))))]
+
+    [(_ conf (key (value ...)) rest ...)
+
+     (#%keybindings
+      (hash-insert conf
+                   (dbg! (if (string? (quote key)) (quote key) (symbol->string (quote key))))
+                   (#%keybindings (hash) (value ...)))
+      rest ...)]
+
+    [(_ conf (key value) rest ...)
+
+     (#%keybindings
+      (hash-insert conf
+                   (dbg! (if (string? (quote key)) (quote key) (symbol->string (quote key))))
+                   (if (string? value) value (~>> (quote value) symbol->string (string-append ":"))))
+      rest ...)]))
+
+(define-syntax keymap
+  (syntax-rules (global insert normal select)
+    [(_ (global) args ...) (add-global-keybinding (keymap args ...))]
+
+    [(_) (hash)]
+
+    [(_ (insert args ...) rest ...)
+     (hash-union (#%keybindings (hash) ("insert" args ...)) (keymap rest ...))]
+
+    [(_ (normal args ...) rest ...)
+     (hash-union (#%keybindings (hash) ("normal" args ...)) (keymap rest ...))]
+
+    [(_ (select args ...) rest ...)
+     (hash-union (#%keybindings (hash) ("select" args ...)) (keymap rest ...))]))
