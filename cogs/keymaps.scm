@@ -86,7 +86,7 @@
   (syntax-rules ()
     [(_ conf (key (value ...) rest ...))
      (hash-insert conf
-                  (dbg! (if (string? (quote key)) (quote key) (symbol->string (quote key))))
+                  (if (string? (quote key)) (quote key) (symbol->string (quote key)))
                   (#%keybindings (hash) (value ...) rest ...))]
 
     [(_ conf (key (value ...)))
@@ -96,22 +96,21 @@
     [(_ conf (key value))
 
      (hash-insert conf
-                  (dbg! (if (string? (quote key)) (quote key) (symbol->string (quote key))))
+                  (if (string? (quote key)) (quote key) (symbol->string (quote key)))
                   (if (string? value) value (~>> (quote value) symbol->string (string-append ":"))))]
 
     [(_ conf (key (value ...)) rest ...)
 
-     (#%keybindings
-      (hash-insert conf
-                   (dbg! (if (string? (quote key)) (quote key) (symbol->string (quote key))))
-                   (#%keybindings (hash) (value ...)))
-      rest ...)]
+     (#%keybindings (hash-insert conf
+                                 (if (string? (quote key)) (quote key) (symbol->string (quote key)))
+                                 (#%keybindings (hash) (value ...)))
+                    rest ...)]
 
     [(_ conf (key value) rest ...)
 
      (#%keybindings
       (hash-insert conf
-                   (dbg! (if (string? (quote key)) (quote key) (symbol->string (quote key))))
+                   (if (string? (quote key)) (quote key) (symbol->string (quote key)))
                    (if (string? value) value (~>> (quote value) symbol->string (string-append ":"))))
       rest ...)]))
 
