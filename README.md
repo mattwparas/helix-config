@@ -6,6 +6,14 @@ Make sure when installing helix from the [fork](https://github.com/mattwparas/he
 run `cargo xtask steel` from the root. That will install helix w/ steel and also the `forge` CLI for package management,
 the steel language server, and the steel repl.
 
+## Installing dependencies
+
+After cloning this, you can run this to install the package:
+
+```
+forge install
+```
+
 ##  Installing this as a library
 
 If you'd like to install all the dependencies that I'm using, as well as this directory as a package, which includes:
