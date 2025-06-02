@@ -1,7 +1,8 @@
-(require-builtin helix/core/themes)
-(require-builtin helix/components)
+; (require-builtin helix/core/themes)
+; (require-builtin helix/components)
 
-(require (prefix-in theme. "../themes.scm"))
+(require "helix/components.scm")
+(require (prefix-in theme. "helix/themes.scm"))
 
 (provide built-theme
          scale-up
@@ -19,6 +20,8 @@
 ;   (theme-set-style! theme 'attribute style))
 
 ; (theme-func foo)
+
+(define string->color theme.string->color)
 
 (define variant 'dark)
 (define (true-color-p)
@@ -234,7 +237,7 @@
 
 (define spacemacs-hash (hash "ui.text" (hash 'fg base) "ui.selection" (hash 'bg highlight)))
 
-(define built-theme (hashmap->theme "spacemacs" spacemacs-hash))
+(define built-theme (theme.hashmap->theme "spacemacs" spacemacs-hash))
 
 (define (scale-up x scale)
   (min (exact (round (* scale x))) 255))
@@ -292,7 +295,7 @@
 
 ; (list 10 20 30)
 
-(add-theme! *helix.cx* built-theme)
+(theme.register-theme built-theme)
 
 ; (provide built-theme
 ;          scale-up

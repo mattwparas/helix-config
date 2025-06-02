@@ -1,14 +1,41 @@
-# Installing the terminal
+# How to use
+
+## Helix fork w/ steel
 
 Make sure when installing helix from the [fork](https://github.com/mattwparas/helix) with steel enabled, that you
-run `cargo xtask code-gen` from the root. This will setup all of the necessary steel files in the right spot.
+run `cargo xtask steel` from the root. That will install helix w/ steel and also the `forge` CLI for package management,
+the steel language server, and the steel repl.
 
-You'll also need to have a matching version of `cargo-steel-lib` or the `steel` executable installed - you can 
-then run `cargo-steel-lib` or `steel dylib` from the root of `crates/steel-pty` in order to build the dylib
-for the terminal library. 
+##  Installing this as a library
 
+If you'd like to install all the dependencies that I'm using, as well as this directory as a package, which includes:
+
+* File watcher that reloads files on external changes
+* Embedded Terminal
+
+Just run:
+
+```
+forge pkg install --git https://github.com/mattwparas/helix-config.git
+  
+```
+
+To install the `forge` CLI if you don't already have it, you can run the following:
+
+```
+cargo install --git https://github.com/mattwparas/steel.git forge
+```
+
+Other libraries that can be found under the `cogs` directory include:
+
+* Recent file picker - `(cogs/recentf.scm)`
+* File tree (which will soon be moved to its own repo) - `(cogs/file-tree.scm)`
+* Keybinding niceties - `(cogs/keymaps.scm)`
+* Spacemacs theme - `(cogs/themes/spacemacs.scm)`
 
 ## Features
+
+### Terminal
 
 * There is a debug window which will capture output from steel `displayln` and render accordingly, just run `:open-debug-window`
 * Embedded terminal - run `:open-term` to open it up
