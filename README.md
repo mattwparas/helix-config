@@ -41,6 +41,11 @@ Other libraries that can be found under the `cogs` directory include:
 * Keybinding niceties - `(cogs/keymaps.scm)`
 * Spacemacs theme - `(cogs/themes/spacemacs.scm)`
 
+## Note: Windows users
+
+You will need a working version of strawberry perl installed on your machine to build the terminal library. See these
+[instructions](https://wezterm.org/install/source.html#building-on-windows) from wezterm for building on windows.
+
 ## Features
 
 ### Terminal
