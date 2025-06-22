@@ -31,7 +31,7 @@ forge pkg install --git https://github.com/mattwparas/helix-config.git
 To install the `forge` CLI if you don't already have it, you can run the following:
 
 ```
-cargo install --git https://github.com/mattwparas/steel.git forge
+cargo install --git https://github.com/mattwparas/steel.git steel-forge
 ```
 
 Other libraries that can be found under the `cogs` directory include:
