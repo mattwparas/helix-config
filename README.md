@@ -60,7 +60,7 @@ The terminal windows at the moment do not resize properly when the terminal is r
 In your `init.scm`, require the file and decide when to invoke the splash. In this case, I have the splash run when you open with no arguments:
 
 ```scheme
-(require "mattwparas-helix-config/splash.scm")
+(require "mattwparas-helix-package/splash.scm")
 
 (when (equal? (command-line) '("hx"))
   (show-splash))
@@ -69,7 +69,7 @@ In your `init.scm`, require the file and decide when to invoke the splash. In th
 ### Recent file picker
 
 ```scheme
-(require "mattwparas-helix-config/cogs/recentf.scm")
+(require "mattwparas-helix-package/cogs/recentf.scm")
 
 ;; Start the snapshotting in the background.
 (recentf-snapshot)
