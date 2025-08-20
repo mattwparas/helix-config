@@ -32,7 +32,9 @@
   (cond
     ;; We're just storing these as strings with the quotes still there, so that we
     ;; can call `read` on them accordingly
-    [(path-exists? RECENTF-FILE) (~> (open-input-file RECENTF-FILE) (read-port-to-string) (read!))]
+    [(path-exists? RECENTF-FILE)
+
+     (call-with-input-file RECENTF-FILE (lambda (f) (~> f read-port-to-string read!)))]
     [else '()]))
 
 (define *recent-files* (read-recent-files))
