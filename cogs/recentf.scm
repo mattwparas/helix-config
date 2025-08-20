@@ -66,11 +66,12 @@
 
 (define (flush-recent-files)
   ;; Open the output file, and then we'll write all the recent files down
-  (let ([output-file (open-output-file RECENTF-FILE)])
-    (map (lambda (line)
-           (when (string? line)
-             (write-line! output-file line)))
-         *recent-files*)))
+  (call-with-output-file RECENTF-FILE
+                         (lambda (output-file)
+                           (map (lambda (line)
+                                  (when (string? line)
+                                    (write-line! output-file line)))
+                                *recent-files*))))
 
 (define (helix-picker! pick-list)
   (push-component! (picker pick-list)))
