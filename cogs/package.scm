@@ -1,4 +1,4 @@
-(require "cogs/picker.scm")
+(require "picker.scm")
 (require "helix/misc.scm")
 (require-builtin helix/components)
 
