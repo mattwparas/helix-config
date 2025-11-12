@@ -58,8 +58,8 @@
 
   (define found-style
     (~> (style)
-        (style-bg (or (style->bg (theme->bg *helix.cx*)) (style)))
-        (style-fg (or (style->fg (theme->fg *helix.cx*)) (style)))))
+        (style-bg (or (style->bg (theme->bg *helix.cx*)) (style-bg (style))))
+        (style-fg (or (style->fg (theme->fg *helix.cx*)) (style-fg (style))))))
 
   (define text-style (theme-scope "ui.text"))
   (define bg-style (theme-scope "ui.background"))
