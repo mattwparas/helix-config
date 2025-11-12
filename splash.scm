@@ -56,11 +56,6 @@
   (define x (- (round (/ (area-width rect) 2)) (round (/ max-width 2))))
   (define y (area-y block-area))
 
-  (define found-style
-    (~> (style)
-        (style-bg (or (style->bg (theme->bg *helix.cx*)) (style-bg (style))))
-        (style-fg (or (style->fg (theme->fg *helix.cx*)) (style-fg (style))))))
-
   (define text-style (theme-scope "ui.text"))
   (define bg-style (theme-scope "ui.background"))
   (define string-text (theme-scope "string"))
