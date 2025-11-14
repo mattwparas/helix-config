@@ -43,7 +43,7 @@
                 (B ":evil-prev-long-word-start")
                 (E ":evil-next-long-word-end")
                 (W ":evil-next-long-word-start")
-                ; (0 "goto_line_start")
+                ("0" "goto_line_start")
                 ($ "goto_line_end")
                 (^ "goto_first_nonwhitespace")
                 (del "delete_selection"))
