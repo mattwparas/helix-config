@@ -8,43 +8,9 @@
 (require "helix/ext.scm")
 (require "helix/components.scm")
 
+(require-builtin steel/time)
+
 (require-builtin helix/core/text)
-
-; "h" | "left" => extend_same_line_char_left,
-; "j" | "down" => extend_anchored_visual_line_down,
-; "k" | "up" => extend_anchored_visual_line_up,
-; "l" | "right" => extend_same_line_char_right,
-
-; "a" => select_textobject_around,
-; "i" => select_textobject_inner,
-
-; //"w" => extend_next_word_start,
-; //"b" => extend_prev_word_start,
-; //"e" => extend_next_word_end,
-; //"W" => extend_next_long_word_start,
-; //"B" => extend_prev_long_word_start,
-; //"E" => extend_next_long_word_end,
-
-; "A-e" => extend_parent_node_end,
-; "A-b" => extend_parent_node_start,
-
-; //"n" => extend_search_next,
-; //"N" => extend_search_prev,
-
-; //"t" => extend_till_char,
-; //"f" => extend_next_char,
-; //"T" => extend_till_prev_char,
-; //"F" => extend_prev_char,
-
-; "home" => extend_to_line_start,
-; "end" => extend_to_line_end,
-; "esc" => exit_select_mode,
-
-; "g" => { "Goto"
-;     "k" => extend_anchored_line_up,
-;     "j" => extend_anchored_line_down,
-;     "w" => extend_to_word,
-; },
 
 (keymap (global)
         (normal (l ":move-char-right-same-line")
@@ -57,31 +23,39 @@
                 (T ":evil-till-prev-char")
                 (a ":evil-append-mode")
                 (w ":evil-next-word-start")
+                (e ":evil-next-word-end")
                 (A-d "no_op")
                 (A-c "no_op")
                 ;; Selecting the whole file
-                (% "no_op")
-                (x "no_op")
+                (% "match_brackets")
                 (X "no_op")
                 (A-x "no_op")
-                ; "d" => evil_delete,
+                (p "paste_after")
+                (P "paste_before")
+                ;; TODO: More delete things
                 (d (d ":evil-delete-line") (w ":evil-delete-word"))
-                ; "c" => evil_change,
+                ;; TODO: More change things
                 (c (c ":evil-change-line"))
-                ; "x" => evil_delete_immediate,
-                ; "y" => evil_yank,
-                ; "b" => evil_prev_word_start,
-                ; "e" => evil_next_word_end,
-                ; "w" => evil_next_word_start,
-                ; "B" => evil_prev_long_word_start,
-                ; "E" => evil_next_long_word_end,
-                ; "W" => evil_next_long_word_start,
-                (b "no_op")
-                (e "no_op")
-                (W "no_op")
-                (B "no_op")
-                (E "no_op"))
-        (select (a "select_textobject_around") (i "select_textobject_inner")))
+                (x "delete_selection_noyank")
+                ;; TODO: More yank things
+                (y (y ":evil-yank-link") (a (w ":yank-around-word") (i ":yank-inner-word")))
+                (b ":evil-prev-word-start")
+                (B ":evil-prev-long-word-start")
+                (E ":evil-next-long-word-end")
+                (W ":evil-next-long-word-start")
+                ; (0 "goto_line_start")
+                ($ "goto_line_end")
+                (^ "goto_first_nonwhitespace")
+                (del "delete_selection"))
+        ;; Select bindings
+        ;; TODO: Rename this to VIS
+        (select (a "select_textobject_around")
+                (i "select_textobject_inner")
+                (h ":extend-char-left-same-line")
+                (l ":extend-char-right-same-line")
+                (j ":extend-line-down")
+                (k ":extend-line-up"))
+        (insert (C-d "unindent") (C-t "indent")))
 
 (define (evil-append-mode)
   ;; Move to insert mode
@@ -101,6 +75,13 @@
     (unless (equal? #\newline char)
       (helix.static.move_char_right))))
 
+(define (extend-char-right-same-line)
+  (define pos (cursor-position))
+  (define char (rope-char-ref (get-document-as-slice) (+ 1 pos)))
+  (when char
+    (unless (equal? #\newline char)
+      (helix.static.extend_char_right))))
+
 (define (move-char-left-same-line)
   (define pos (cursor-position))
   (define char (rope-char-ref (get-document-as-slice) (- pos 1)))
@@ -108,27 +89,72 @@
     (unless (equal? #\newline char)
       (helix.static.move_char_left))))
 
+(define (extend-char-left-same-line)
+  (define pos (cursor-position))
+  (define char (rope-char-ref (get-document-as-slice) (- pos 1)))
+  (when char
+    (unless (equal? #\newline char)
+      (helix.static.extend_char_left))))
+
+(define (extend-line-up-impl)
+  (define pos (cursor-position))
+  (define doc (get-document-as-slice))
+  (define char (rope-char-ref doc pos))
+  (when char
+    (when (char=? #\newline char)
+      (define char-to-left (rope-char-ref doc (- pos 1)))
+      (when char-to-left
+        (unless (char=? #\newline char-to-left)
+          (helix.static.extend_char_left))))))
+
+(define (extend-line-up)
+  (helix.static.extend_line_up)
+  (extend-line-up-impl))
+
+(define (move-line-up-impl)
+  (define pos (cursor-position))
+  (define doc (get-document-as-slice))
+  (define char (rope-char-ref doc pos))
+  (when char
+    (when (char=? #\newline char)
+      (define char-to-left (rope-char-ref doc (- pos 1)))
+      (when char-to-left
+        (unless (char=? #\newline char-to-left)
+          (helix.static.move_char_left))))))
+
 (define (move-line-up)
   (helix.static.move_line_up)
+  (move-line-up-impl))
+
+(define (extend-line-down-impl)
   (define pos (cursor-position))
-  (define char (rope-char-ref (get-document-as-slice) pos))
+  (define doc (get-document-as-slice))
+  (define char (rope-char-ref doc pos))
   (when char
-    (when (equal? #\newline char)
-      (define char-to-left (rope-char-ref (get-document-as-slice) (- pos 1)))
+    (when (char=? #\newline char)
+      (define char-to-left (rope-char-ref doc (- pos 1)))
       (when char-to-left
-        (unless (equal? #\newline char-to-left)
+        (unless (char=? #\newline char-to-left)
+          (helix.static.extend_char_left))))))
+
+(define (extend-line-down)
+  (helix.static.extend_line_down)
+  (extend-line-down-impl))
+
+(define (move-line-down-impl)
+  (define pos (cursor-position))
+  (define doc (get-document-as-slice))
+  (define char (rope-char-ref doc pos))
+  (when char
+    (when (char=? #\newline char)
+      (define char-to-left (rope-char-ref doc (- pos 1)))
+      (when char-to-left
+        (unless (char=? #\newline char-to-left)
           (helix.static.move_char_left))))))
 
 (define (move-line-down)
   (helix.static.move_line_down)
-  (define pos (cursor-position))
-  (define char (rope-char-ref (get-document-as-slice) pos))
-  (when char
-    (when (equal? #\newline char)
-      (define char-to-left (rope-char-ref (get-document-as-slice) (- pos 1)))
-      (when char-to-left
-        (unless (equal? #\newline char-to-left)
-          (helix.static.move_char_left))))))
+  (move-line-down-impl))
 
 (define (do-n-times n func)
   (if (= n 0)
@@ -233,8 +259,73 @@
   (define pos (cursor-position))
   (helix.static.extend_next_word_start)
   (helix.static.collapse_selection)
-
   (define new-pos (cursor-position))
-
   (when (> (- new-pos pos) 1)
     (helix.static.move_char_right)))
+
+(define (evil-next-word-end)
+  (helix.static.move_next_word_end)
+  (helix.static.collapse_selection))
+
+(define (evil-prev-word-start)
+  (helix.static.move_prev_word_start)
+  (helix.static.collapse_selection)
+  (define pos (cursor-position))
+  (define doc (get-document-as-slice))
+  (define cur-char (rope-char-ref doc pos))
+  (when (and cur-char (char-whitespace? cur-char))
+    (evil-prev-word-start)))
+
+(define (evil-prev-long-word-start)
+  (helix.static.move_prev_long_word_start)
+  (helix.static.collapse_selection)
+  (define pos (cursor-position))
+  (define doc (get-document-as-slice))
+  (define cur-char (rope-char-ref doc pos))
+  (when (and cur-char (char-whitespace? cur-char))
+    (evil-prev-long-word-start)))
+
+(define (evil-next-long-word-start)
+  (define pos (cursor-position))
+  (helix.static.extend_next_long_word_start)
+  (helix.static.collapse_selection)
+  (define doc (get-document-as-slice))
+  (define new-pos (cursor-position))
+  (when (> (- new-pos pos) 1)
+    (helix.static.move_char_right))
+
+  (define cur-char (rope-char-ref doc new-pos))
+  (when (and cur-char (char-whitespace? cur-char))
+    (evil-next-long-word-start)))
+
+(define (evil-next-long-word-end)
+  (helix.static.move_next_long_word_end)
+  (helix.static.collapse_selection))
+
+(define (yank-current-line)
+  (helix.static.extend_to_line_bounds)
+  (helix.static.yank_main_selection_to_clipboard)
+  (helix.static.normal_mode)
+  (helix.static.collapse_selection))
+
+(define w-key (string->key-event "w"))
+(define (select-around-word)
+  (helix.static.select_textobject_around)
+  (trigger-on-key-callback w-key))
+
+(define (select-inner-word)
+  (helix.static.select_textobject_inner)
+  (trigger-on-key-callback w-key))
+
+;; Emulate a keypress?
+(define (yank-around-word)
+  (select-around-word)
+  (helix.static.move_prev_word_start)
+  (helix.static.yank_main_selection_to_clipboard)
+  (helix.static.collapse_selection))
+
+(define (yank-inner-word)
+  (select-inner-word)
+  (helix.static.move_prev_word_start)
+  (helix.static.yank_main_selection_to_clipboard)
+  (helix.static.collapse_selection))
