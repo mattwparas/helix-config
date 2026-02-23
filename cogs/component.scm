@@ -1,7 +1,7 @@
 (require "helix/configuration.scm")
 (require "helix/misc.scm")
 
-(require-builtin helix/components)
+(require "helix/components.scm")
 (require (prefix-in helix. "helix/commands.scm"))
 
 (require "helix/editor.scm")
@@ -188,8 +188,8 @@
                           #:max-window-size [max-window-size 8]
                           #:value-formatter [formatter default-formatter]
                           #:highlight-prefix [highlight-prefix void]
-                          #:default-style [default-style (style)]
-                          #:highlight-style [highlight-style (style-bg (style) Color/Gray)])
+                          #:default-style [default-style (theme-scope "ui.menu")]
+                          #:highlight-style [highlight-style (theme-scope "ui.menu.selected")])
 
   (new-component! "steel-picker"
                   (Picker items

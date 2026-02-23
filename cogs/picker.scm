@@ -1,7 +1,7 @@
 (require "helix/configuration.scm")
 (require "helix/misc.scm")
 
-(require-builtin helix/components)
+(require "helix/components.scm")
 (require (prefix-in helix. "helix/commands.scm"))
 
 (require "helix/editor.scm")
@@ -32,7 +32,10 @@
 (define (pop-character field)
   (define text (MutableTextField-text field))
   (set-MutableTextField-text! field '())
-  (set-MutableTextField-text! field (if (empty? text) text (cdr text))))
+  (set-MutableTextField-text! field
+                              (if (empty? text)
+                                  text
+                                  (cdr text))))
 
 (define (text-field->string field)
   (~> (MutableTextField-text field) reverse list->string))
@@ -177,9 +180,6 @@
   (define half-parent-width (round (/ (area-width rect) 2)))
   (define half-parent-height (round (/ (area-height rect) 2)))
 
-  ;; This is going to be the right half of the selector
-  (define preview-area-width (round (/ half-parent-width 2)))
-
   (define starting-x-offset (round (/ (area-width rect) 4)))
   (define starting-y-offset (round (/ (area-height rect) 4)))
 
@@ -197,7 +197,7 @@
   (define preview-area
     (area (+ starting-x-offset (round (/ half-parent-width 2)))
           (area-y block-area)
-          (round (/ (area-width block-area) 2))
+          (- (round (/ (area-width block-area) 2)) 2)
           (area-height block-area)))
 
   (define x (+ 1 (area-x block-area)))
@@ -208,7 +208,7 @@
 
   (define currently-highlighted (- cursor-position (unbox (Picker-window-start state))))
 
-  (define wide-string (make-string (round (/ (- half-parent-width 2) 2)) #\space))
+  (define wide-string (make-string (- (round (/ (- half-parent-width 2) 2)) 1) #\space))
 
   (set-box! (Picker-max-length state) (area-height block-area))
 
@@ -219,24 +219,27 @@
 
   (define found-style
     (~> (style)
-        (style-bg (style->bg (theme->bg *helix.cx*)))
-        (style-fg (style->fg (theme->fg *helix.cx*)))))
+        (style-bg (style->bg (theme-scope-ref "ui.background")))
+        (style-fg (style->fg (theme-scope-ref "ui.text")))))
+
+  ; (define found-style (theme-scope-ref "ui.background"))
 
   ;; Clear out the target for the terminal
   ;; Ensure that this is within the bounds
   (buffer/clear frame block-area)
+  ; (buffer/clear frame preview-area)
 
   (block/render frame
                 (area (- (area-x block-area) 1)
                       (- (area-y block-area) 1)
                       (+ 2 (area-width block-area))
                       (+ 2 (area-height block-area)))
-                (make-block (theme->bg *helix.cx*) (theme->bg *helix.cx*) "all" "plain"))
+                (make-block (theme-scope-ref "ui.background") found-style "all" "plain"))
 
   ;; Paint a box around the preview area
   (block/render frame
                 preview-area
-                (make-block (theme->bg *helix.cx*) (theme->bg *helix.cx*) "all" "plain"))
+                (make-block (theme-scope-ref "ui.background") found-style "all" "plain"))
 
   ;; If the string has been provided, we should render the values here
   (when (and (function? (Picker-preview-func state)) selection)
@@ -274,7 +277,6 @@
                                     (string-append (Picker-highlight-prefix state)
                                                    ((Picker-value-formatter state) row))
                                     (string-append "  " ((Picker-value-formatter state) row)))
-                                ; (Picker-highlight-style state)
                                 found-style))
            (frame-set-string! frame
                               x

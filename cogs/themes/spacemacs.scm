@@ -265,7 +265,13 @@
      (~> (style) (style-fg (string->color mat)) (style-underline-style Underline/Line)))
     (theme.diagnostic.error
      (~> (style) (style-underline-style Underline/Curl) (style-underline-color (string->color err))))
+    (theme.diagnostic.warning
+     (~> (style) (style-underline-style Underline/Curl) (style-underline-color (string->color war))))
     (theme.diagnostic.info
+     (~> (style) (style-underline-style Underline/Curl) (style-underline-color (string->color war))))
+    (theme.diagnostic.unnecessary
+     (~> (style) (style-underline-style Underline/Curl) (style-underline-color (string->color war))))
+    (theme.diagnostic.hint
      (~> (style) (style-underline-style Underline/Curl) (style-underline-color (string->color war))))
     ; (theme.variable.parameter (~> (style) (style-fg (string->color ))))
     (theme.type (~> (style) (style-fg (string->color type))))
