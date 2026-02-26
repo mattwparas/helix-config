@@ -321,8 +321,12 @@
   (define pos (cursor-position))
   (define char (rope-char-ref (get-document-as-slice) pos))
   (when char
-    (if (equal? #\newline char)
-        (move-char-left-same-line))))
+    (when (equal? #\newline char)
+      (move-char-left-same-line-impl)
+      ;; BUG: for some reason, editor-count stacks, so I have to set it to 0 before continuing?
+      ;; (e.g exiting insert mode from end of line -> 7k results in movement from 17k if below line isnt added)
+      ;; TODO: look into Helix code to see why this happens
+      (set-editor-count! 0))))
 
 (provide vim-undo
          vim-append-mode
