@@ -14,6 +14,8 @@
 (define f-key (string->key-event "f"))
 (define c-key (string->key-event "c"))
 (define x-key (string->key-event "x"))
+(define at-key (string->key-event "@"))
+(define comma-key (string->key-event ","))
 
 (provide 
   a-key
@@ -25,4 +27,6 @@
   f-key
   c-key
   x-key
+  at-key
+  comma-key
 )

@@ -24,126 +24,120 @@
                   (left ":move-char-left-same-line")
                   (up ":move-line-up")
                   (down ":move-line-down")
-                  (f ":evil-find-next-char")
-                  (F ":evil-find-prev-char")
-                  (t ":evil-find-till-char")
-                  (T ":evil-till-prev-char")
-                  (a ":evil-append-mode")
-                  (u ":evil-undo")
-                  (w ":evil-next-word-start")
-                  (e ":evil-next-word-end")
-                  (G ":evil-goto-line-or-last")
+                  (f ":vim-find-next-char")
+                  (F ":vim-find-prev-char")
+                  (t ":vim-find-till-char")
+                  (T ":vim-till-prev-char")
+                  (a ":vim-append-mode")
+                  (u ":vim-undo")
+                  (w ":vim-next-word-start")
+                  (e ":vim-next-word-end")
+                  (G ":vim-goto-line-or-last")
                   (V ":visual-line-mode")
                   (A-d "no_op")
                   (A-c "no_op")
-                  ;; Selecting the whole file
                   (% "match_brackets")
                   (X "no_op")
                   (A-x "no_op")
                   (p ":clipboard-paste-after")
                   (P ":clipboard-paste-before")
                   ;; TODO: More delete things
-                  (d (d ":evil-delete-line") 
-                     (w ":evil-delete-word")
-                     (W ":evil-delete-long-word")
-                     (b ":evil-delete-prev-word")
-                     (B ":evil-delete-prev-long-word")
-                     (e ":evil-delete-word-end")
-                     (E ":evil-delete-long-word-end")
-                     (a (w ":evil-delete-around-word")
-                        (p ":evil-delete-around-paragraph")
-                        (f ":evil-delete-around-function")
-                        (c ":evil-delete-around-comment")
-                        (e ":evil-delete-around-data-structure")
-                        (x ":evil-delete-around-html-tag")
-                        (t ":evil-delete-around-type-definition")
-                        (T ":evil-delete-around-test")
-                        ("{" ":evil-delete-around-curly")
-                        ("[" ":evil-delete-around-square")
-                        ("(" ":evil-delete-around-paren")
-                        ("<" ":evil-delete-around-arrow")
-                        ("\"" ":evil-delete-around-double-quote")
-                        ("'" ":evil-delete-around-single-quote")
-                     )
-                     (i (w ":evil-delete-inner-word")
-                        (p ":evil-delete-inner-paragraph")
-                        (f ":evil-delete-inner-function")
-                        (c ":evil-delete-inner-comment")
-                        (e ":evil-delete-inner-data-structure")
-                        (x ":evil-delete-inner-html-tag")
-                        (t ":evil-delete-inner-type-definition")
-                        (T ":evil-delete-inner-test")
-                        ("{" ":evil-delete-inner-curly")
-                        ("[" ":evil-delete-inner-square")
-                        ("(" ":evil-delete-inner-paren")
-                        ("<" ":evil-delete-inner-arrow")
-                        ("\"" ":evil-delete-inner-double-quote")
-                        ("'" ":evil-delete-inner-single-quote")
-                    )
-                  )
-                  (c (w ":evil-change-word")
-                     (W ":evil-change-long-word")
-                     (b ":evil-change-prev-word")
-                     (B ":evil-change-prev-long-word")
-                     (e ":evil-change-word-end")
-                     (E ":evil-change-long-word-end")
-                     (a (w ":evil-change-around-word")
-                        (p ":evil-change-around-paragraph")
-                        (f ":evil-change-around-function")
-                        (c ":evil-change-around-comment")
-                        (e ":evil-change-around-data-structure")
-                        (x ":evil-change-around-html-tag")
-                        (t ":evil-change-around-type-definition")
-                        (T ":evil-change-around-test")
-                        ("{" ":evil-change-around-curly")
-                        ("[" ":evil-change-around-square")
-                        ("(" ":evil-change-around-paren")
-                        ("<" ":evil-change-around-arrow")
-                        ("\"" ":evil-change-around-double-quote")
-                        ("'" ":evil-change-around-single-quote")
-                     )
-                     (i (w ":evil-change-inner-word")
-                        (p ":evil-change-inner-paragraph")
-                        (f ":evil-change-inner-function")
-                        (c ":evil-change-inner-comment")
-                        (e ":evil-change-inner-data-structure")
-                        (x ":evil-change-inner-html-tag")
-                        (t ":evil-change-inner-type-definition")
-                        (T ":evil-change-inner-test")
-                        ("{" ":evil-change-inner-curly")
-                        ("[" ":evil-change-inner-square")
-                        ("(" ":evil-change-inner-paren")
-                        ("<" ":evil-change-inner-arrow")
-                        ("\"" ":evil-change-inner-double-quote")
-                        ("'" ":evil-change-inner-single-quote")
-                    )
-                  )
-                  (S ":evil-change-line")
-                  (x "delete_selection")
+                  (d (d ":vim-delete-line")
+                     (w ":vim-delete-word")
+                     (W ":vim-delete-long-word")
+                     (b ":vim-delete-prev-word")
+                     (B ":vim-delete-prev-long-word")
+                     (e ":vim-delete-word-end")
+                     (E ":vim-delete-long-word-end")
+                     ($ ":vim-delete-line-end")
+                     (^ ":vim-delete-line-start")
+                     (a (w ":vim-delete-around-word")
+                        (p ":vim-delete-around-paragraph")
+                        (f ":vim-delete-around-function")
+                        (c ":vim-delete-around-comment")
+                        (e ":vim-delete-around-data-structure")
+                        (x ":vim-delete-around-html-tag")
+                        (t ":vim-delete-around-type-definition")
+                        (T ":vim-delete-around-test")
+                        ("{" ":vim-delete-around-curly")
+                        ("[" ":vim-delete-around-square")
+                        ("(" ":vim-delete-around-paren")
+                        ("<" ":vim-delete-around-arrow")
+                        ("\"" ":vim-delete-around-double-quote")
+                        ("'" ":vim-delete-around-single-quote"))
+                     (i (w ":vim-delete-inner-word")
+                        (p ":vim-delete-inner-paragraph")
+                        (f ":vim-delete-inner-function")
+                        (c ":vim-delete-inner-comment")
+                        (e ":vim-delete-inner-data-structure")
+                        (x ":vim-delete-inner-html-tag")
+                        (t ":vim-delete-inner-type-definition")
+                        (T ":vim-delete-inner-test")
+                        ("{" ":vim-delete-inner-curly")
+                        ("[" ":vim-delete-inner-square")
+                        ("(" ":vim-delete-inner-paren")
+                        ("<" ":vim-delete-inner-arrow")
+                        ("\"" ":vim-delete-inner-double-quote")
+                        ("'" ":vim-delete-inner-single-quote")))
+                  (c (c ":vim-change-line")
+                     (w ":vim-change-word")
+                     (W ":vim-change-long-word")
+                     (b ":vim-change-prev-word")
+                     (B ":vim-change-prev-long-word")
+                     (e ":vim-change-word-end")
+                     (E ":vim-change-long-word-end")
+                     ($ ":vim-change-line-end")
+                     (^ ":vim-change-line-start")
+                     (a (w ":vim-change-around-word")
+                        (p ":vim-change-around-paragraph")
+                        (f ":vim-change-around-function")
+                        (c ":vim-change-around-comment")
+                        (e ":vim-change-around-data-structure")
+                        (x ":vim-change-around-html-tag")
+                        (t ":vim-change-around-type-definition")
+                        (T ":vim-change-around-test")
+                        ("{" ":vim-change-around-curly")
+                        ("[" ":vim-change-around-square")
+                        ("(" ":vim-change-around-paren")
+                        ("<" ":vim-change-around-arrow")
+                        ("\"" ":vim-change-around-double-quote")
+                        ("'" ":vim-change-around-single-quote"))
+                     (i (w ":vim-change-inner-word")
+                        (p ":vim-change-inner-paragraph")
+                        (f ":vim-change-inner-function")
+                        (c ":vim-change-inner-comment")
+                        (e ":vim-change-inner-data-structure")
+                        (x ":vim-change-inner-html-tag")
+                        (t ":vim-change-inner-type-definition")
+                        (T ":vim-change-inner-test")
+                        ("{" ":vim-change-inner-curly")
+                        ("[" ":vim-change-inner-square")
+                        ("(" ":vim-change-inner-paren")
+                        ("<" ":vim-change-inner-arrow")
+                        ("\"" ":vim-change-inner-double-quote")
+                        ("'" ":vim-change-inner-single-quote")))
+                  (S ":vim-change-line")
+                  (x ":vim-delete-selection")
                   ;; TODO: More yank things
-                  (y (y ":evil-yank-line") 
+                  (y (y ":vim-yank-line")
                      ;; TODO: around/inner long word
                      ;; TODO: paragraph, function, comment, test, html tag, etc.
-                     (a 
-                       (w ":yank-around-word")
-                       (p ":yank-around-paragraph")
-                       (f ":yank-around-function")
-                       (c ":yank-around-comment")
-                       (e ":yank-around-data-structure")
-                       (x ":yank-around-html-tag")
-                       (t ":yank-around-type-definition")
-                       (T ":yank-around-test")
-                      ) 
-                     (i 
-                       (w ":yank-inner-word")
-                       (p ":yank-inner-paragraph")
-                       (f ":yank-inner-function")
-                       (c ":yank-inner-comment")
-                       (e ":yank-inner-data-structure")
-                       (x ":yank-inner-html-tag")
-                       (t ":yank-inner-type-definition")
-                       (T ":yank-inner-test")
-                     )
+                     (a (w ":yank-around-word")
+                        (p ":yank-around-paragraph")
+                        (f ":yank-around-function")
+                        (c ":yank-around-comment")
+                        (e ":yank-around-data-structure")
+                        (x ":yank-around-html-tag")
+                        (t ":yank-around-type-definition")
+                        (T ":yank-around-test"))
+                     (i (w ":yank-inner-word")
+                        (p ":yank-inner-paragraph")
+                        (f ":yank-inner-function")
+                        (c ":yank-inner-comment")
+                        (e ":yank-inner-data-structure")
+                        (x ":yank-inner-html-tag")
+                        (t ":yank-inner-type-definition")
+                        (T ":yank-inner-test"))
                      (w ":yank-word")
                      (W ":yank-long-word")
                      (e ":yank-word")
@@ -152,217 +146,267 @@
                      (B ":yank-prev-long-word")
                      ($ ":yank-line-end")
                      ("0" ":yank-line-start")
-                     (^ ":yank-line-start-non-whitespace")
-                  )
-                  (b ":evil-prev-word-start")
-                  (B ":evil-prev-long-word-start")
-                  (E ":evil-next-long-word-end")
-                  (W ":evil-next-long-word-start")
+                     (^ ":yank-line-start-non-whitespace"))
+                  (b ":vim-prev-word-start")
+                  (B ":vim-prev-long-word-start")
+                  (E ":vim-next-long-word-end")
+                  (W ":vim-next-long-word-start")
                   ("0" "goto_line_start")
                   ($ "goto_line_end")
                   (^ "goto_first_nonwhitespace")
-                  (del "delete_selection"))
+                  (del "delete_selection")
+                  (C-r "redo")
+                  (> (> "indent"))
+                  (< (< "unindent"))
+                  (D ":vim-delete-line-end")
+                  (C ":vim-change-line-end")
+                  ("{" ":vim-goto-prev-paragraph")
+                  ("}" ":vim-goto-next-paragraph")
+                  ;; NOTE: this implementation uses the , register
+                  ;; so be careful with saving other things there
+                  ("," ":vim-repeat-last-find")
+                  (";" ":vim-reverse-last-find"))
+          ;; TODO: make full "reflow mode"
+          ;; ("=" ":reflow"))
           ;; Select bindings
-          ;; TODO: Rename this to VIS
+          ;; TODO: Rename this to VIS (nacl TODO: figure out if I care)
           (select (a (w ":select-around-word")
-                    (p ":select-around-paragraph")
-                    (f ":select-around-function")
-                    (c ":select-around-comment")
-                    (e ":select-around-data-structure")
-                    (x ":select-around-html-tag")
-                    (t ":select-around-type-definition")
-                    (T ":select-around-test")
-                    ("{" ":select-around-curly")
-                    ("[" ":select-around-square")
-                    ("(" ":select-around-paren")
-                    ("<" ":select-around-arrow")
-                    ("\"" ":select-around-double-quote")
-                    ("'" ":select-around-single-quote")
-                  )
+                     (p ":select-around-paragraph")
+                     (f ":select-around-function")
+                     (c ":select-around-comment")
+                     (e ":select-around-data-structure")
+                     (x ":select-around-html-tag")
+                     (t ":select-around-type-definition")
+                     (T ":select-around-test")
+                     ("{" ":select-around-curly")
+                     ("[" ":select-around-square")
+                     ("(" ":select-around-paren")
+                     ("<" ":select-around-arrow")
+                     ("\"" ":select-around-double-quote")
+                     ("'" ":select-around-single-quote"))
                   (i (w ":select-inner-word")
-                    (p ":select-inner-paragraph")
-                    (f ":select-inner-function")
-                    (c ":select-inner-comment")
-                    (e ":select-inner-data-structure")
-                    (x ":select-inner-html-tag")
-                    (t ":select-inner-type-definition")
-                    (T ":select-inner-test")
-                    ("{" ":select-inner-curly")
-                    ("[" ":select-inner-square")
-                    ("(" ":select-inner-paren")
-                    ("<" ":select-inner-arrow")
-                    ("\"" ":select-inner-double-quote")
-                    ("'" ":select-inner-single-quote"))
+                     (p ":select-inner-paragraph")
+                     (f ":select-inner-function")
+                     (c ":select-inner-comment")
+                     (e ":select-inner-data-structure")
+                     (x ":select-inner-html-tag")
+                     (t ":select-inner-type-definition")
+                     (T ":select-inner-test")
+                     ("{" ":select-inner-curly")
+                     ("[" ":select-inner-square")
+                     ("(" ":select-inner-paren")
+                     ("<" ":select-inner-arrow")
+                     ("\"" ":select-inner-double-quote")
+                     ("'" ":select-inner-single-quote"))
                   (h ":extend-char-left-same-line")
                   (l ":extend-char-right-same-line")
                   (j ":extend-line-down")
                   (k ":extend-line-up")
+                  (w ":vim-extend-next-word-start")
+                  (W ":vim-extend-next-long-word-start")
                   (p ":clipboard-paste-after")
                   (P ":clipboard-paste-before")
-                  (y ":evil-yank-selection")
+                  (y ":vim-yank-selection")
+                  (d ":vim-delete-selection")
+                  (x ":vim-delete-selection")
+                  (c ":vim-change-selection")
+                  ("{" ":vim-extend-to-prev-paragraph")
+                  ("}" ":vim-extend-to-next-paragraph")
+                  ("0" "extend_to_line_start")
+                  ($ "extend_to_line_end")
+                  (^ "extend_to_first_nonwhitespace")
+                  (G "extend_to_file_end")
+                  (% "match_brackets")
+                  (f ":select-find-next-char")
+                  (F ":select-find-prev-char")
+                  (t ":select-find-till-char")
+                  (T ":select-till-prev-char")
+                  ("," ":select-repeat-last-find")
+                  (";" ":select-reverse-last-find")
+                  ("=" ":reflow")
+                  (> (> "indent"))
+                  (< (< "unindent"))
                   (left ":extend-char-left-same-line")
                   (right ":extend-char-right-same-line")
                   (down ":extend-line-down")
                   (up ":extend-line-up")
-                  (esc ":exit-visual-line-mode")
-                )
-          (insert (C-d "unindent") (C-t "indent"))))
+                  (esc ":exit-visual-line-mode"))
+          (insert (C-d "unindent") (C-t "indent") (esc ":vim-exit-insert-mode"))))
 
 (define (set-vim-keybindings!)
   (add-global-keybinding vim-keybindings))
 
 (provide set-vim-keybindings!)
-(provide 
-  ;; change motions
-  evil-change-line
-  evil-change-word
-  evil-change-long-word
-  evil-change-prev-word
-  evil-change-prev-long-word
-  evil-change-word-end
-  evil-change-long-word-end
-  evil-change-around-word
-  evil-change-inner-word
-  evil-change-around-paragraph
-  evil-change-inner-paragraph
-  evil-change-around-function
-  evil-change-inner-function
-  evil-change-around-comment
-  evil-change-inner-comment
-  evil-change-around-data-structure
-  evil-change-inner-data-structure
-  evil-change-around-html-tag
-  evil-change-inner-html-tag
-  evil-change-around-type-definition
-  evil-change-inner-type-definition
-  evil-change-around-test
-  evil-change-inner-test
-  evil-change-around-curly
-  evil-change-inner-curly
-  evil-change-around-square
-  evil-change-inner-square
-  evil-change-inner-paren
-  evil-change-around-paren
-  evil-change-around-double-quote
-  evil-change-inner-double-quote
-  evil-change-around-single-quote
-  evil-change-inner-single-quote
-  evil-change-around-arrow
-  evil-change-inner-arrow
-  evil-change-inner-square
-  evil-change-inner-paren
-  evil-change-around-paren
-  evil-change-around-double-quote
-  evil-change-inner-double-quote
-  evil-change-around-single-quote
-  evil-change-inner-single-quote
-  evil-change-around-arrow
-  evil-change-inner-arrow
+;; change motions
+(provide vim-change-selection
+         vim-change-line
+         vim-change-word
+         vim-change-long-word
+         vim-change-prev-word
+         vim-change-prev-long-word
+         vim-change-word-end
+         vim-change-long-word-end
+         vim-change-line-end
+         vim-change-line-start
+         vim-change-around-word
+         vim-change-inner-word
+         vim-change-around-paragraph
+         vim-change-inner-paragraph
+         vim-change-around-function
+         vim-change-inner-function
+         vim-change-around-comment
+         vim-change-inner-comment
+         vim-change-around-data-structure
+         vim-change-inner-data-structure
+         vim-change-around-html-tag
+         vim-change-inner-html-tag
+         vim-change-around-type-definition
+         vim-change-inner-type-definition
+         vim-change-around-test
+         vim-change-inner-test
+         vim-change-around-curly
+         vim-change-inner-curly
+         vim-change-around-square
+         vim-change-inner-square
+         vim-change-inner-paren
+         vim-change-around-paren
+         vim-change-around-double-quote
+         vim-change-inner-double-quote
+         vim-change-around-single-quote
+         vim-change-inner-single-quote
+         vim-change-around-arrow
+         vim-change-inner-arrow
+         vim-change-inner-square
+         vim-change-inner-paren
+         vim-change-around-paren
+         vim-change-around-double-quote
+         vim-change-inner-double-quote
+         vim-change-around-single-quote
+         vim-change-inner-single-quote
+         vim-change-around-arrow
+         vim-change-inner-arrow
 
-  ;; delete motions
-  evil-delete-line
-  evil-delete-word
-  evil-delete-word-end
-  evil-delete-long-word-end
-  evil-delete-long-word
-  evil-delete-around-word
-  evil-delete-inner-word
-  evil-delete-around-paragraph
-  evil-delete-inner-paragraph
-  evil-delete-prev-word
-  evil-delete-prev-long-word
-  evil-delete-around-function
-  evil-delete-inner-function
-  evil-delete-around-comment
-  evil-delete-inner-comment
-  evil-delete-around-data-structure
-  evil-delete-inner-data-structure
-  evil-delete-around-html-tag
-  evil-delete-inner-html-tag
-  evil-delete-around-type-definition
-  evil-delete-inner-type-definition
-  evil-delete-around-test
-  evil-delete-inner-test
-  evil-delete-around-curly
-  evil-delete-inner-curly
-  evil-delete-around-square
-  evil-delete-inner-square
-  evil-delete-inner-paren
-  evil-delete-around-paren
-  evil-delete-around-double-quote
-  evil-delete-inner-double-quote
-  evil-delete-around-single-quote
-  evil-delete-inner-single-quote
-  evil-delete-around-arrow
-  evil-delete-inner-arrow
+         ;; delete motions
+         vim-delete-selection
+         vim-delete-line
+         vim-delete-word
+         vim-delete-word-end
+         vim-delete-long-word-end
+         vim-delete-long-word
+         vim-delete-line-end
+         vim-delete-line-start
+         vim-delete-around-word
+         vim-delete-inner-word
+         vim-delete-around-paragraph
+         vim-delete-inner-paragraph
+         vim-delete-prev-word
+         vim-delete-prev-long-word
+         vim-delete-around-function
+         vim-delete-inner-function
+         vim-delete-around-comment
+         vim-delete-inner-comment
+         vim-delete-around-data-structure
+         vim-delete-inner-data-structure
+         vim-delete-around-html-tag
+         vim-delete-inner-html-tag
+         vim-delete-around-type-definition
+         vim-delete-inner-type-definition
+         vim-delete-around-test
+         vim-delete-inner-test
+         vim-delete-around-curly
+         vim-delete-inner-curly
+         vim-delete-around-square
+         vim-delete-inner-square
+         vim-delete-inner-paren
+         vim-delete-around-paren
+         vim-delete-around-double-quote
+         vim-delete-inner-double-quote
+         vim-delete-around-single-quote
+         vim-delete-inner-single-quote
+         vim-delete-around-arrow
+         vim-delete-inner-arrow
 
-  ;; normal motions
-  evil-undo
-  evil-append-mode
-  move-char-right-same-line
-  move-char-left-same-line
-  move-line-up-impl
-  move-line-up
-  move-line-down-impl
-  move-line-down
-  evil-find-next-char
-  evil-find-prev-char
-  evil-find-till-char
-  evil-till-prev-char
-  evil-goto-line-or-last
-  evil-next-word-start
-  evil-next-word-end
-  evil-prev-word-start
-  evil-prev-long-word-start
-  evil-next-long-word-start
-  evil-next-long-word-end
-  visual-line-mode
+         ;; normal motions
+         vim-undo
+         vim-append-mode
+         move-char-right-same-line
+         move-char-left-same-line
+         move-line-up-impl
+         move-line-up
+         move-line-down-impl
+         move-line-down
+         vim-find-next-char
+         vim-find-prev-char
+         vim-find-till-char
+         vim-till-prev-char
+         vim-repeat-last-find
+         vim-reverse-last-find
+         vim-goto-line-or-last
+         vim-next-word-start
+         vim-next-word-end
+         vim-prev-word-start
+         vim-prev-long-word-start
+         vim-next-long-word-start
+         vim-next-long-word-end
+         vim-goto-next-paragraph
+         vim-goto-prev-paragraph
+         visual-line-mode
+         vim-exit-insert-mode
 
-  ;; visual motions
-  extend-char-right-same-line
-  extend-char-left-same-line
-  extend-line-up
-  extend-line-down
-  select-around-word
-  select-inner-word
-  select-around-paragraph
-  select-inner-paragraph
-  select-around-function
-  select-inner-function
-  select-around-comment
-  select-inner-comment
-  select-around-data-structure
-  select-inner-data-structure
-  select-around-html-tag
-  select-inner-html-tag
-  select-around-type-definition
-  select-inner-type-definition
-  select-around-test
-  select-inner-test
-  select-inner-curly
-  select-around-curly
-  select-inner-paren
-  select-around-paren
-  select-inner-square
-  select-around-square
-  select-inner-double-quote
-  select-around-double-quote
-  select-inner-single-quote
-  select-around-single-quote
-  select-inner-arrow
-  select-around-arrow
-  exit-visual-line-mode
-  
-  ;; yank motions
-  evil-yank-selection
-  yank-around-word
-  yank-inner-word
-  yank-word
-  yank-long-word
-  yank-prev-word
-  yank-prev-long-word
-  yank-line-end
-  yank-line-start
-  yank-line-start-non-whitespace
-  evil-yank-line
-)
+         ;; visual motions
+         extend-char-right-same-line
+         extend-char-left-same-line
+         extend-line-up
+         extend-line-down
+         vim-extend-next-word-start
+         vim-extend-next-long-word-start
+         vim-extend-to-next-paragraph
+         vim-extend-to-prev-paragraph
+         select-around-word
+         select-inner-word
+         select-around-paragraph
+         select-inner-paragraph
+         select-around-function
+         select-inner-function
+         select-around-comment
+         select-inner-comment
+         select-around-data-structure
+         select-inner-data-structure
+         select-around-html-tag
+         select-inner-html-tag
+         select-around-type-definition
+         select-inner-type-definition
+         select-around-test
+         select-inner-test
+         select-inner-curly
+         select-around-curly
+         select-inner-paren
+         select-around-paren
+         select-inner-square
+         select-around-square
+         select-inner-double-quote
+         select-around-double-quote
+         select-inner-single-quote
+         select-around-single-quote
+         select-inner-arrow
+         select-around-arrow
+         select-find-next-char
+         select-find-prev-char
+         select-find-till-char
+         select-till-prev-char
+         select-repeat-last-find
+         select-reverse-last-find
+         exit-visual-line-mode
+
+         ;; yank motions
+         vim-yank-selection
+         yank-around-word
+         yank-inner-word
+         yank-word
+         yank-long-word
+         yank-prev-word
+         yank-prev-long-word
+         yank-line-end
+         yank-line-start
+         yank-line-start-non-whitespace
+         vim-yank-line)

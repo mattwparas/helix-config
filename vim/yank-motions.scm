@@ -10,17 +10,18 @@
 
 (require-builtin helix/core/text)
 
+;; TODO: implement for yank commands using custom implementations
+
 (define (yank-impl func)
   (func)
   (helix.static.yank_main_selection_to_clipboard)
   (helix.static.flip_selections)
   (helix.static.collapse_selection))
 
-;; y
-(define (evil-yank-selection)
-  ; (yank-impl no_op)
-  (exit-visual-line-mode)
-)
+;; y (select)
+(define (vim-yank-selection)
+  (yank-impl helix.static.no_op)
+  (exit-visual-line-mode))
 
 ;; yaw
 (define (yank-around-word)
@@ -32,11 +33,21 @@
 
 ;; yw
 (define (yank-word)
-  (yank-impl helix.static.extend_next_word_end))
+  (vim-extend-next-word-start)
+  (set-editor-count! 1)
+  (helix.static.extend_char_left)
+  (helix.static.yank_main_selection_to_clipboard)
+  (helix.static.flip_selections)
+  (helix.static.collapse_selection))
 
 ;; yW
 (define (yank-long-word)
-  (yank-impl helix.static.extend_next_long_word_end))
+  (vim-extend-next-word-start)
+  (set-editor-count! 1)
+  (helix.static.extend_char_left)
+  (helix.static.yank_main_selection_to_clipboard)
+  (helix.static.flip_selections)
+  (helix.static.collapse_selection))
 
 ;; yb
 (define (yank-prev-word)
@@ -59,35 +70,38 @@
   (yank-impl helix.static.extend_to_first_nonwhitespace))
 
 ;; yy
-(define (evil-yank-line)
+(define (vim-yank-line)
   (define start-pos (cursor-position))
+  (define count (editor-count))
+  (when (> count 1)
+    (set-editor-count! (- count 1))
+    (helix.static.extend_line_down)
+  )
   (helix.static.extend_to_line_bounds)
   (helix.static.yank_main_selection_to_clipboard)
 
-    ;; Flash the selection briefly (if highlight_selections exists)
+  ;; Flash the selection briefly (if highlight_selections exists)
   ;; This provides visual feedback
   ;; (when (defined? 'helix.static.highlight_selections)
   ;;   (helix.static.highlight_selections))
-  
+
   (helix.static.normal_mode)
   (helix.static.collapse_selection)
-  
+
   (define current-pos (cursor-position))
   (define distance (- start-pos current-pos))
   (cond
     [(> distance 0) (move-right-n distance)]
     [(< distance 0) (move-left-n (- distance))]))
 
-(provide
-  evil-yank-selection
-  yank-around-word
-  yank-inner-word
-  yank-word
-  yank-long-word
-  yank-prev-word
-  yank-prev-long-word
-  yank-line-end
-  yank-line-start
-  yank-line-start-non-whitespace
-  evil-yank-line
-)
+(provide vim-yank-selection
+         yank-around-word
+         yank-inner-word
+         yank-word
+         yank-long-word
+         yank-prev-word
+         yank-prev-long-word
+         yank-line-end
+         yank-line-start
+         yank-line-start-non-whitespace
+         vim-yank-line)
