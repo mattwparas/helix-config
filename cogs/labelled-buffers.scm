@@ -11,6 +11,7 @@
          open-or-switch-focus
          currently-in-labelled-buffer?
          open-labelled-buffer
+         open-or-create-labelled-buffer!
          maybe-fetch-doc-id
          fetch-doc-id)
 
@@ -99,6 +100,19 @@
 
 (define (open-labelled-buffer label)
   (open-or-switch-focus (hash-ref *temporary-buffer-map* label)))
+
+(define (open-or-create-labelled-buffer!
+         #:label label
+         #:language-type (language-type #f)
+         #:side (side 'none))
+  (define maybe-doc-id (hash-try-get *temporary-buffer-map* label))
+  (if maybe-doc-id
+      (open-or-switch-focus maybe-doc-id)
+      (begin
+        (make-new-labelled-buffer! #:label label
+                                   #:language-type language-type
+                                   #:side side)
+        (open-labelled-buffer label))))
 
 (define (currently-in-labelled-buffer? label)
   (define requested-label (hash-try-get *temporary-buffer-map* label))
