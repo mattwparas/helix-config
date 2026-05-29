@@ -12,9 +12,9 @@
 ;; TODO: rethink everything about how repetition is implemented in delete and yank
 
 (define (delete-impl func)
-  (func)
-  (helix.clipboard-yank)
-  (helix.static.delete_selection))
+  (when (func)
+    (helix.clipboard-yank)
+    (helix.static.delete_selection)))
 
 ;; x (d in select-mode?)
 (define (vim-delete-selection)
@@ -89,6 +89,10 @@
 
 ;; d^
 (define (vim-delete-line-start)
+  (delete-impl helix.static.extend_to_first_nonwhitespace))
+
+;; d0
+(define (vim-delete-line-col0)
   (delete-impl helix.static.extend_to_line_start))
 
 ;; daw
@@ -99,16 +103,13 @@
 (define (vim-delete-inner-word)
   (delete-impl select-inner-word))
 
-;; TODO: finish implementing this
 ;; daW
-;; (define (vim-delete-around-long-word)
-;;   (select-around-word)
-;;   (helix.static.delete_selection))
+(define (vim-delete-around-long-word)
+  (delete-impl select-around-long-word))
 
 ;; diW
-;; (define (vim-delete-inner-long-word)
-;;   (select-inner-word)
-;;   (helix.static.delete_selection))
+(define (vim-delete-inner-long-word)
+  (delete-impl select-inner-long-word))
 
 ;; dap
 (define (vim-delete-around-paragraph)
@@ -222,8 +223,11 @@
          vim-delete-long-word-end
          vim-delete-line-end
          vim-delete-line-start
+         vim-delete-line-col0
          vim-delete-around-word
          vim-delete-inner-word
+         vim-delete-around-long-word
+         vim-delete-inner-long-word
          vim-delete-around-paragraph
          vim-delete-inner-paragraph
          vim-delete-prev-word

@@ -328,6 +328,103 @@
       ;; TODO: look into Helix code to see why this happens
       (set-editor-count! 0))))
 
+;; gg
+(define (vim-goto-file-start)
+  (helix.static.goto_file_start)
+  (helix.static.collapse_selection))
+
+;; I
+(define (vim-insert-at-line-start)
+  (helix.static.goto_first_nonwhitespace)
+  (helix.static.collapse_selection)
+  (helix.static.insert_mode))
+
+;; J
+(define (vim-join-lines)
+  (define count (editor-count))
+  (set-editor-count! 1)
+  (do-n-times (max 1 (- count 1)) (lambda () (helix.static.extend_line_down)))
+  (helix.static.join_selections_space)
+  (helix.static.collapse_selection))
+
+;; ~
+(define (vim-toggle-case)
+  (define count (editor-count))
+  (set-editor-count! 1)
+  (if (> count 1)
+      (begin
+        (do-n-times (- count 1) (lambda () (helix.static.extend_char_right)))
+        (helix.static.switch_case)
+        (helix.static.flip_selections)
+        (helix.static.collapse_selection))
+      (begin
+        (helix.static.switch_case)
+        (helix.static.move_char_right)
+        (helix.static.collapse_selection))))
+
+;; zz
+(define (vim-scroll-center) (helix.static.align_view_center))
+
+;; zt
+(define (vim-scroll-top) (helix.static.align_view_top))
+
+;; zb
+(define (vim-scroll-bottom) (helix.static.align_view_bottom))
+
+;; H
+(define (vim-window-top)
+  (helix.static.goto_window_top)
+  (helix.static.collapse_selection))
+
+;; M
+(define (vim-window-middle)
+  (helix.static.goto_window_center)
+  (helix.static.collapse_selection))
+
+;; L
+(define (vim-window-bottom)
+  (helix.static.goto_window_bottom)
+  (helix.static.collapse_selection))
+
+;; *
+(define (vim-search-word-forward)
+  (helix.static.search_selection_detect_word_boundaries)
+  (helix.static.collapse_selection))
+
+;; # — set word search then go to previous occurrence
+(define (vim-search-word-backward)
+  (helix.static.search_selection_detect_word_boundaries)
+  (helix.static.search_prev)
+  (helix.static.collapse_selection))
+
+;; s
+(define (vim-substitute-char)
+  (define count (editor-count))
+  (set-editor-count! 1)
+  (when (> count 1)
+    (do-n-times (- count 1) (lambda () (helix.static.extend_char_right))))
+  (helix.static.change_selection))
+
+;; guu
+(define (vim-lowercase-line)
+  (define count (editor-count))
+  (set-editor-count! 1)
+  (when (> count 1)
+    (do-n-times (- count 1) (lambda () (helix.static.extend_line_down))))
+  (helix.static.extend_to_line_bounds)
+  (helix.static.switch_to_lowercase)
+  (helix.static.collapse_selection))
+
+;; gUU
+(define (vim-uppercase-line)
+  (define count (editor-count))
+  (set-editor-count! 1)
+  (when (> count 1)
+    (do-n-times (- count 1) (lambda () (helix.static.extend_line_down))))
+  (helix.static.extend_to_line_bounds)
+  (helix.static.switch_to_uppercase)
+  (helix.static.collapse_selection))
+
 (provide vim-undo
          vim-append-mode
          move-char-right-same-line
@@ -352,4 +449,19 @@
          vim-goto-next-paragraph
          vim-goto-prev-paragraph
          visual-line-mode
-         vim-exit-insert-mode)
+         vim-exit-insert-mode
+         vim-goto-file-start
+         vim-insert-at-line-start
+         vim-join-lines
+         vim-toggle-case
+         vim-scroll-center
+         vim-scroll-top
+         vim-scroll-bottom
+         vim-window-top
+         vim-window-middle
+         vim-window-bottom
+         vim-search-word-forward
+         vim-search-word-backward
+         vim-substitute-char
+         vim-lowercase-line
+         vim-uppercase-line)

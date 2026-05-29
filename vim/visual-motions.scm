@@ -209,6 +209,35 @@
 (define (select-inner-test)
   (select-inner-impl T-key))
 
+;; vaW
+(define (select-around-long-word)
+  (select-around-impl W-key))
+
+;; viW
+(define (select-inner-long-word)
+  (select-inner-impl W-key))
+
+;; Helpers for linewise inner-brace detection (neovim parity)
+(define (only-ws-after? rope pos)
+  (let* ([line (rope-char->line rope pos)]
+         [end  (+ (rope-line->char rope line) (rope-len-chars (rope->line rope line)))])
+    (let loop ([p (+ pos 1)])
+      (cond [(>= p (- end 1)) #t]
+            [(is-whitespace? (rope-char-ref rope p)) (loop (+ p 1))]
+            [else #f]))))
+
+(define (only-ws-before? rope pos)
+  (let ([start (rope-line->char rope (rope-char->line rope pos))])
+    (let loop ([p start])
+      (cond [(>= p pos) #t]
+            [(is-whitespace? (rope-char-ref rope p)) (loop (+ p 1))]
+            [else #f]))))
+
+(define (brace-block-linewise? rope open-pos close-pos)
+  (and (> (rope-char->line rope close-pos) (rope-char->line rope open-pos))
+       (only-ws-after? rope open-pos)
+       (only-ws-before? rope close-pos)))
+
 ;; vi{
 ;; vi[
 ;; vi(
@@ -218,24 +247,30 @@
 (define (select-inner-bracket open-ch)
   (define rope (get-document-as-slice))
   (define cur-pos (cursor-position))
-
   (let ([pair (find-bracket-pair rope cur-pos open-ch)])
-    (when pair
-      (let ([open-pos (car pair)]
-            [close-pos (cdr pair)])
-        ;; Determine which is opening and which is closing
-        (if (< open-pos close-pos)
-            (begin
-              ;; Move to position after opening bracket
-              (move-to-position (+ open-pos 1))
-              ;; Extend to position before closing bracket
-              (extend-to-position (- close-pos 1)))
-            (begin
-              ;; Reversed - match_brackets put us on closing bracket
-              (move-to-position (+ close-pos 1))
-              (extend-to-position (- open-pos 1))))))))
+    (if (not pair)
+        #f
+        (let ([open-pos (min (car pair) (cdr pair))]
+              [close-pos (max (car pair) (cdr pair))])
+          (cond
+            [(<= (- close-pos open-pos) 1) #f]
+            [(brace-block-linewise? rope open-pos close-pos)
+             (let* ([first-line (+ (rope-char->line rope open-pos) 1)]
+                    [last-line  (- (rope-char->line rope close-pos) 1)])
+               (if (> first-line last-line)
+                   (begin (move-to-position (+ open-pos 1))
+                          (extend-to-position (- close-pos 1)) #t)
+                   (let* ([start-char (rope-line->char rope first-line)]
+                          [ls (rope-line->char rope last-line)]
+                          [llen (rope-len-chars (rope->line rope last-line))]
+                          [last-content (+ ls (- llen 2))])
+                     (move-to-position start-char)
+                     (when (>= last-content start-char)
+                       (extend-to-position last-content))
+                     #t)))]
+            [else (move-to-position (+ open-pos 1))
+                  (extend-to-position (- close-pos 1)) #t])))))
 
-;; Select around bracket - enhanced with forward search
 ;; va{
 ;; va[
 ;; va(
@@ -245,59 +280,66 @@
 (define (select-around-bracket open-ch)
   (define rope (get-document-as-slice))
   (define cur-pos (cursor-position))
-
   (let ([pair (find-bracket-pair rope cur-pos open-ch)])
-    (when pair
-      (let ([open-pos (car pair)]
-            [close-pos (cdr pair)])
-        ;; Determine which is opening and which is closing
-        (if (< open-pos close-pos)
-            (begin
-              (move-to-position open-pos)
-              (extend-to-position close-pos))
-            (begin
-              (move-to-position close-pos)
-              (extend-to-position open-pos)))))))
+    (if (not pair)
+        #f
+        (let ([open-pos (min (car pair) (cdr pair))]
+              [close-pos (max (car pair) (cdr pair))])
+          (move-to-position open-pos)
+          (extend-to-position close-pos)
+          #t))))
+
+;; Collect positions of all quote chars on cur-line (left to right)
+(define (quote-positions-on-line rope quote-ch cur-line)
+  (define line-start (rope-line->char rope cur-line))
+  (define line-end (+ line-start (rope-len-chars (rope->line rope cur-line))))
+  (let loop ([p line-start] [acc '()])
+    (cond
+      [(>= p (- line-end 1)) (reverse acc)]
+      [else
+       (let ([ch (rope-char-at rope p)])
+         (if (and ch (char=? ch quote-ch))
+             (loop (+ p 1) (cons p acc))
+             (loop (+ p 1) acc)))])))
+
+;; Find the quote pair (open . close) that contains cur-pos or is first after it.
+;; quotes must be in ascending order; pairs are (q0,q1),(q2,q3),...
+(define (find-quote-pair quotes cur-pos)
+  (let loop ([qs quotes])
+    (cond
+      [(or (null? qs) (null? (cdr qs))) #f]
+      [else
+       (let ([open (car qs)]
+             [close (cadr qs)])
+         (cond
+           [(and (<= open cur-pos) (<= cur-pos close)) (cons open close)]
+           [(< cur-pos open) (cons open close)]
+           [else (loop (cddr qs))]))])))
 
 (define (select-inner-quote quote-ch)
   (define rope (get-document-as-slice))
-  (define start-pos (cursor-position))
-
-  (helix.static.select_textobject_inner)
-  (trigger-on-key-callback (string->key-event (string quote-ch)))
-
-  ;; If didn't work, search forward
-  (when (= start-pos (cursor-position))
-    (let loop ([i 1])
-      (define pos (+ start-pos i))
-      (when (< pos (rope-len-chars rope))
-        (let ([ch (rope-char-ref rope pos)])
-          (if (char=? ch quote-ch)
-              (begin
-                (move-right-n (+ i 1)) ; Move past the quote
-                (helix.static.select_textobject_inner)
-                (trigger-on-key-callback (string->key-event (string quote-ch))))
-              (loop (+ i 1))))))))
+  (define cur-pos (cursor-position))
+  (define cur-line (rope-char->line rope cur-pos))
+  (define pair (find-quote-pair (quote-positions-on-line rope quote-ch cur-line) cur-pos))
+  (if (not pair)
+      #f
+      (let ([open (car pair)] [close (cdr pair)])
+        (if (<= (- close open) 1)
+            #f
+            (begin (move-to-position (+ open 1))
+                   (extend-to-position (- close 1))
+                   #t)))))
 
 (define (select-around-quote quote-ch)
   (define rope (get-document-as-slice))
-  (define start-pos (cursor-position))
-
-  (helix.static.select_textobject_around)
-  (trigger-on-key-callback (string->key-event (string quote-ch)))
-
-  ;; If didn't work, search forward
-  (when (= start-pos (cursor-position))
-    (let loop ([i 1])
-      (define pos (+ start-pos i))
-      (when (< pos (rope-len-chars rope))
-        (let ([ch (rope-char-ref rope pos)])
-          (if (char=? ch quote-ch)
-              (begin
-                (move-right-n (+ i 1)) ; Move past the quote
-                (helix.static.select_textobject_around)
-                (trigger-on-key-callback (string->key-event (string quote-ch))))
-              (loop (+ i 1))))))))
+  (define cur-pos (cursor-position))
+  (define cur-line (rope-char->line rope cur-pos))
+  (define pair (find-quote-pair (quote-positions-on-line rope quote-ch cur-line) cur-pos))
+  (if (not pair)
+      #f
+      (begin (move-to-position (car pair))
+             (extend-to-position (cdr pair))
+             #t)))
 
 ;; Public API functions
 (define (select-inner-curly)
@@ -495,7 +537,7 @@
     [(equal? action #\T) (select-find-till-char-impl char count)]))
 
 (define (exit-visual-line-mode)
-  (when is-visual-line-mode?
+  (when (is-visual-line-mode?)
     (set-visual-line-mode! #f))
   (helix.static.collapse_selection)
   (helix.static.normal_mode)
@@ -544,6 +586,8 @@
          select-around-single-quote
          select-inner-arrow
          select-around-arrow
+         select-around-long-word
+         select-inner-long-word
          select-find-next-char
          select-find-prev-char
          select-find-till-char

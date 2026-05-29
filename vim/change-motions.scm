@@ -10,9 +10,9 @@
 (require "visual-motions.scm")
 
 (define (change-impl func)
-  (func)
-  (helix.clipboard-yank)
-  (helix.static.change_selection))
+  (when (func)
+    (helix.clipboard-yank)
+    (helix.static.change_selection)))
 
 ;; c (select)
 (define (vim-change-selection)
@@ -45,6 +45,10 @@
 
 ;; c^
 (define (vim-change-line-start)
+  (change-impl helix.static.extend_to_first_nonwhitespace))
+
+;; c0
+(define (vim-change-line-col0)
   (change-impl helix.static.extend_to_line_start))
 
 ;; ce
@@ -63,16 +67,13 @@
 (define (vim-change-inner-word)
   (change-impl select-inner-word))
 
-;; TODO: finish implementing this
 ;; caW
-;; (define (vim-change-around-long-word)
-;;   (select-around-word)
-;;   (helix.static.change_selection))
+(define (vim-change-around-long-word)
+  (change-impl select-around-long-word))
 
 ;; ciW
-;; (define (vim-change-inner-long-word)
-;;   (select-inner-word)
-;;   (helix.static.change_selection))
+(define (vim-change-inner-long-word)
+  (change-impl select-inner-long-word))
 
 ;; cap
 (define (vim-change-around-paragraph)
@@ -188,8 +189,11 @@
          vim-change-long-word-end
          vim-change-line-end
          vim-change-line-start
+         vim-change-line-col0
          vim-change-around-word
          vim-change-inner-word
+         vim-change-around-long-word
+         vim-change-inner-long-word
          vim-change-around-paragraph
          vim-change-inner-paragraph
          vim-change-around-function
@@ -207,15 +211,6 @@
          vim-change-around-curly
          vim-change-inner-curly
          vim-change-around-square
-         vim-change-inner-square
-         vim-change-inner-paren
-         vim-change-around-paren
-         vim-change-around-double-quote
-         vim-change-inner-double-quote
-         vim-change-around-single-quote
-         vim-change-inner-single-quote
-         vim-change-around-arrow
-         vim-change-inner-arrow
          vim-change-inner-square
          vim-change-inner-paren
          vim-change-around-paren

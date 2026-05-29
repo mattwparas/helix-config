@@ -16,13 +16,15 @@
 (define x-key (string->key-event "x"))
 (define at-key (string->key-event "@"))
 (define comma-key (string->key-event ","))
+(define W-key (string->key-event "W"))
 
-(provide 
+(provide
   a-key
   e-key
   t-key
   T-key
   w-key
+  W-key
   p-key
   f-key
   c-key
